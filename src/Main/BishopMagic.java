@@ -1,6 +1,7 @@
 package Main;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 public class BishopMagic
 {
@@ -23,22 +24,22 @@ public class BishopMagic
     };
 
     long[] bishopMagics = {
-            0x007bfeffbfeffbffL, 0x003effbfeffbfe08L, 0x0000401020200000L, 0x0000200810000000L,
-            0x0000110080000000L, 0x0000080100800000L, 0x0007efe0bfff8000L, 0x00000fb0203fff80L,
-            0x00007dff7fdff7fdL, 0x0000011fdff7efffL, 0x0000004010202000L, 0x0000002008100000L,
-            0x0000001100800000L, 0x0000000801008000L, 0x000007efe0bfff80L, 0x000000080f9fffc0L,
-            0x0000400080808080L, 0x0000200040404040L, 0x0000400080808080L, 0x0000200200801000L,
-            0x0000240080840000L, 0x0000080080840080L, 0x0000040010410040L, 0x0000020008208020L,
-            0x0000804000810100L, 0x0000402000408080L, 0x0000804000810100L, 0x0000404004010200L,
-            0x0000404004010040L, 0x0000101000804400L, 0x0000080800104100L, 0x0000040400082080L,
-            0x0000410040008200L, 0x0000208020004100L, 0x0000110080040008L, 0x0000020080080080L,
-            0x0000404040040100L, 0x0000202040008040L, 0x0000101010002080L, 0x0000080808001040L,
-            0x0000208200400080L, 0x0000104100200040L, 0x0000208200400080L, 0x0000008840200040L,
-            0x0000020040100100L, 0x007fff80c0280050L, 0x0000202020200040L, 0x0000101010100020L,
-            0x0007ffdfc17f8000L, 0x0003ffefe0bfc000L, 0x0000000820806000L, 0x00000003ff004000L,
-            0x0000000100202000L, 0x0000004040802000L, 0x007ffeffbfeff820L, 0x003fff7fdff7fc10L,
-            0x0003ffdfdfc27f80L, 0x000003ffefe0bfc0L, 0x0000000008208060L, 0x0000000003ff0040L,
-            0x0000000001002020L, 0x0000000040408020L, 0x00007ffeffbfeff9L, 0x007ffdff7fdff7fdL
+            0x89a1121896040240L, 0x2004844802002010L, 0x000A442240140800L, 0x0084025141400000L,
+            0x0005480000042040L, 0x4088084A00428010L, 0x3908296005082000L, 0x0801000000221204L,
+            0x0000600A000204B8L, 0x2100210414200004L, 0x2101008004001084L, 0x00000020080020C0L,
+            0x0000000000404082L, 0x0000000800204100L, 0x0000000020D01005L, 0x00000000384000A0L,
+            0x0000020044010100L, 0x0000040210030010L, 0x2000400210090102L, 0x0000008004012003L,
+            0x0000040880020400L, 0x0000204081010440L, 0x0000000901020280L, 0x8000082080040202L,
+            0x0000020082410021L, 0x0000008020000202L, 0x0000100420002501L, 0x0000000800080410L,
+            0x0010000400800800L, 0x8000000401040002L, 0x0000000800100082L, 0x0000000100400100L,
+            0x0000000040420000L, 0x0000000010900002L, 0x0000000004000028L, 0x0000000C00000080L,
+            0x0000002000000208L, 0x0000000020081000L, 0x0000001C00000080L, 0x0000040100100202L,
+            0x0000008000008000L, 0x0000000088000800L, 0x000000000000A400L, 0x0000000400002000L,
+            0x0000000002010001L, 0x0000000000008801L, 0x0000008000010080L, 0x0000000200000012L,
+            0x0000000000210000L, 0x0000000000000800L, 0x0000000204000044L, 0x0000000008000010L,
+            0x0000000108000002L, 0x0000000000000801L, 0x0000002000000210L, 0x0000000008000100L,
+            0x0000000000208000L, 0x0000000000000A00L, 0x0000000200002020L, 0x0000000008200900L,
+            0x0000000028000004L, 0x0000000000000240L, 0x0000008890002200L, 0x0000004000002000L
     };
 
     long[][] bishopAttacks = new long[64][512];
@@ -223,5 +224,70 @@ public class BishopMagic
 
         return bishopAttacks[square][index] & ~friendlyPieces;
     }
+
+    public long findMagic(int square)
+    {
+        long mask = 1L << 63 - square;
+
+        boolean isValid = false;
+        long magic = 0L;
+
+        int count = 0;
+
+       for(int i = 0; i < 1; i++)
+        {
+
+            long[] attacks = new long[512];
+            isValid = true;
+
+            Random rand = new Random();
+            magic = rand.nextLong() & rand.nextLong() & rand.nextLong();
+
+
+
+
+            for (long blocker : getAllBlockerCombinations(mask))
+            {
+                count += 1;
+                long bishopMask = bishopAttackMasks[square];
+                int shift = 64 - bishopBits[square];
+                int index =  (int)( (blocker & bishopMask) * magic >>> shift);
+                System.out.println(magic);
+                System.out.println(blocker);
+                System.out.println(bishopMask);
+
+                if (attacks[index] == 1)
+                {
+                    isValid = false;
+                    break;
+                }
+                attacks[index] = 1;
+            }
+
+            if(isValid)
+            {
+                return magic;
+            }
+        }
+
+        return 0;
+    }
+
+
+
+    public static void main (String[] args)
+    {
+        BishopMagic bishopMagic = new BishopMagic();
+        Game game = new Game(null);
+        bishopMagic.fillBishopAttackMasks();
+
+        for (long blocker : bishopMagic.getAllBlockerCombinations(bishopMagic.bishopAttackMasks[0]))
+        {
+            System.out.println("");
+            game.displayBitBoard(blocker);
+        }
+    }
+
+
 
 }

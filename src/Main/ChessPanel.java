@@ -29,6 +29,11 @@ public class ChessPanel extends JPanel
                 int row = (e.getY() - boardOffsetY) / squareSize;
                 int column = (e.getX() - boardOffsetX) / squareSize;
 
+                if(row < 0 || row > 7 || column < 0 || column > 7)
+                {
+                    return;
+                }
+
                 int offset = row * 8 + column;
 
                 String positionClickedBinary = "0".repeat(offset) + "1" + "0".repeat(63 - offset);
