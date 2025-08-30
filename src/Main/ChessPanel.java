@@ -39,7 +39,7 @@ public class ChessPanel extends JPanel
                 String positionClickedBinary = "0".repeat(offset) + "1" + "0".repeat(63 - offset);
                 long positionClickedBitBoard = Long.parseUnsignedLong(positionClickedBinary, 2);
 
-                if((game.getCurrentTurnPiecesBitBoard() & positionClickedBitBoard) != 0)
+                if((game.getFriendlyPieces() & positionClickedBitBoard) != 0)
                 {
                     lastPositionClickedBitBoard = positionClickedBitBoard;
                 }
@@ -61,9 +61,10 @@ public class ChessPanel extends JPanel
         Graphics2D g2d = (Graphics2D) g;
 
         drawChessboard(g2d);
-        if((game.getCurrentTurnPiecesBitBoard() & lastPositionClickedBitBoard) != 0L)
+        if((game.getFriendlyPieces() & lastPositionClickedBitBoard) != 0L)
         {
             drawPossibleSquares(g2d, game.getPossibleMoves(lastPositionClickedBitBoard));
+
         }
 
         try {

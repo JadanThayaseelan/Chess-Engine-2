@@ -2,6 +2,7 @@ package Test;
 
 import Main.Game;
 import Main.Game;
+import Main.Pieces.Knight;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.RepeatedTest;
@@ -62,7 +63,7 @@ public class KnightMovesTest
         long pieceToMoveBitBoard = game.generateBitBoard(pieceToMove, piece);
 
         long expectedPossibleMovesBitBoard = game.generateBitBoard(expectedPossibleMoves, piece);
-        long actualPossibleMovesBitBoard = game.possibleKnightMoves(pieceToMoveBitBoard);
+        long actualPossibleMovesBitBoard = new Knight().possibleMoves(pieceToMoveBitBoard, game.getFriendlyPieces());
 
         assertEquals(expectedPossibleMovesBitBoard, actualPossibleMovesBitBoard);
     }

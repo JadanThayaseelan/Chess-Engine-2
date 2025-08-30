@@ -1,6 +1,7 @@
 package Test;
 
 import Main.Game;
+import Main.Pieces.Queen;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +24,7 @@ public class QueenMovesTest
         long pieceToMoveBitBoard = game.generateBitBoard(pieceToMove, piece);
 
         long expectedPossibleMovesBitBoard = game.generateBitBoard(expectedPossibleMoves, piece);
-        long actualPossibleMovesBitBoard = game.possibleQueenMoves(pieceToMoveBitBoard);
+        long actualPossibleMovesBitBoard = new Queen().possibleMoves(pieceToMoveBitBoard, game.getAllPiecesBitBoard(), game.getFriendlyPieces());
 
         assertEquals(expectedPossibleMovesBitBoard, actualPossibleMovesBitBoard);
     }

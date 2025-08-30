@@ -1,6 +1,7 @@
 package Test;
 
 import Main.Game;
+import Main.Pieces.Pawn;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.RepeatedTest;
@@ -61,7 +62,7 @@ public class PawnMovesTest
         long pieceToMoveBitBoard = game.generateBitBoard(pieceToMove, piece);
 
         long expectedPossibleMovesBitBoard = game.generateBitBoard(expectedPossibleMoves, piece);
-        long actualPossibleMovesBitBoard = game.possiblePawnMoves(pieceToMoveBitBoard);
+        long actualPossibleMovesBitBoard = new Pawn().possibleMoves(pieceToMoveBitBoard, game.getAllPiecesBitBoard(), game.getWhitePiecesBitBoard(), game.getBlackPiecesBitBoard(), game.turn);
 
         assertEquals(expectedPossibleMovesBitBoard, actualPossibleMovesBitBoard);
     }

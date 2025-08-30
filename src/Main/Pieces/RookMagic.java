@@ -1,4 +1,4 @@
-package Main;
+package Main.Pieces;
 
 import java.util.ArrayList;
 
@@ -156,7 +156,7 @@ public class RookMagic
             }
         }
 
-        //up
+        //down
         for(int i = row + 1; i <= 7; i++)
         {
             long move = 1L << (63 - (8 * i + col));
@@ -201,15 +201,49 @@ public class RookMagic
         return (int)((occupancy & rookMask) * rookMagics[square] >>> shift);
     }
 
-    public long getRookAttacks(long board, long allPieces, long friendlyPieces)
+    public long getRookAttacks(long board, long allPieces)
     {
+        if(board == 0)
+        {
+            return 0;
+        }
         int square = Long.numberOfLeadingZeros(board);
         long rookMask = rookAttackMasks[square];
         long occupancy = allPieces & rookMask;
 
         int index = calculateRookIndex(square, occupancy);
 
-        return rookAttacks[square][index] & ~friendlyPieces;
+        return rookAttacks[square][index];
+    }
+
+    public long getAllRookAttacks(long board, long allPieces)
+    {
+        long moves = 0L;
+
+        while(board != 0)
+        {
+            long rook = 1L << 63 - Long.numberOfLeadingZeros(board);
+            board = board ^ rook;
+
+            moves = moves | getRookAttacks(rook, allPieces);
+        }
+
+        return moves;
+    }
+
+    public long possibleMoves(long board, long allPieces, long friendlyPieces)
+    {
+        long moves = 0L;
+
+        while(board != 0)
+        {
+            long rook = 1L << 63 - Long.numberOfLeadingZeros(board);
+            board = board ^ rook;
+
+            moves = moves | getRookAttacks(rook, allPieces);
+        }
+
+        return moves & ~friendlyPieces;
     }
 
 

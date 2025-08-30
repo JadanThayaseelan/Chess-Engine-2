@@ -1,6 +1,6 @@
 package Test;
 
-import Main.RookMagic;
+import Main.Pieces.RookMagic;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,7 +59,7 @@ public class RookMagicTest
     @DisplayName("Test get rook attacks")
     public void testGetRookAttacks()
     {
-        assertEquals(0x0000000814080808L ,rookMagic.getRookAttacks(0x0000000008000000L, 0x0000000814000008L, 0));
+        assertEquals(0x0000000814080808L ,rookMagic.getRookAttacks(0x0000000008000000L, 0x0000000814000008L));
     }
 
 

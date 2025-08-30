@@ -1,114 +1,57 @@
 package Main;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import Main.Pieces.*;
 
-import static Main.RookMagicGenerator.RNG;
+import java.util.HashMap;
 
 public class Game
 {
-
-    public long[] knightAttacks = new long[64];
-    public long[] kingAttacks = new long[64];
-
-    public void setupKnightAttacks()
-    {
-        long knightPosition = 0x0000000000000001;
-        for(int i = 0; i < 64; i++)
-        {
-            long currentKnightPosition = knightPosition << i;
-            knightAttacks[i] = possibleKnightMoves(currentKnightPosition);
-        }
-    }
-
-    public void setupKingAttacks()
-    {
-        long kingPosition = 0x0000000000000001;
-        for(int i = 0; i < 64; i++)
-        {
-            long currentKingPosition = kingPosition << i;
-            kingAttacks[i] = calculateKingAttacks(currentKingPosition);
-        }
-    }
-
-    public long calculateKingAttacks(long bitBoard)
-    {
-        long notAFileMask = 0x7f7f7f7f7f7f7f7fL;
-        long notHFileMask = 0xfefefefefefefefeL;
-        long notEightFileMask = 0x00ffffffffffffffL;
-        long notOneFileMask = 0xffffffffffffff00L;
-
-        long northMove = bitBoard << 8 & notOneFileMask;
-        long northEastMove = bitBoard << 7 & notAFileMask;
-
-        long eastMove = bitBoard >> 1 & notAFileMask;
-
-        long southEastMove = bitBoard >> 9 & notAFileMask;
-        long southMove = bitBoard >> 8 & notEightFileMask;
-        long southWestMove = bitBoard >> 7 & notHFileMask;
-
-        long westMove = bitBoard << 1 & notHFileMask;
-
-        long northWestMove = bitBoard << 9 & notHFileMask;
-
-        return northMove | northEastMove | eastMove | southEastMove | southMove | southWestMove | westMove | northWestMove;
-    }
-
-    public long getKnightAttack(long board)
-    {
-        int index = 63 - Long.numberOfLeadingZeros(board);
-        return knightAttacks[index] & ~getCurrentTurnPiecesBitBoard();
-    }
-
-    public long getKingAttack(long board)
-    {
-        int index = 63 - Long.numberOfLeadingZeros(board);
-        return kingAttacks[index] & ~getCurrentTurnPiecesBitBoard();
-    }
-
     public HashMap<String, Long> bitBoards = new HashMap<>();
 
-    public long whitePawnStartingPosition = 0x000000000000FF00L;
-    public long blackPawnStartingPosition = 0x00FF000000000000L;
 
+    public Pawn pawn = new Pawn();
+    public Knight knight = new Knight();
     public RookMagic rookMagic = new RookMagic();
     public BishopMagic bishopMagic = new BishopMagic();
+    public Queen queen = new Queen();
+    public King king = new King();
 
     public int turn = 0;
+
+    private boolean whiteCannotShortCastle = false;
+    private boolean whiteCannotLongCastle = false;
+
+    private boolean blackCannotShortCastle = false;
+    private boolean blackCannotLongCastle = false;
 
 
     public Game(String[][] stringBoard)
     {
 
         if(stringBoard == null) {
-            stringBoard = new String[][]{
-                    {"r", "n", "b", "q", "k", "b", "n", "r"},
-                    {"p", "p", "p", "p", "p", "p", "p", "p"},
-                    {" ", " ", " ", " ", " ", " ", " ", " "},
-                    {" ", " ", " ", " ", " ", " ", " ", " "},
-                    {" ", " ", " ", " ", " ", " ", " ", " "},
-                    {" ", " ", " ", " ", " ", " ", " ", " "},
-                    {"P", "P", "P", "P", "P", "P", "P", "P"},
-                    {"R", "N", "B", "Q", "K", "B", "N", "R"}
-            };
-           // stringBoard = new String[][]{
-           //         {" ", " ", " ", "R", " ", " ", "r", " "},
-           //         {" ", " ", " ", " ", " ", " ", " ", " "},
-           //         {" ", " ", " ", " ", " ", " ", " ", " "},
-           //         {" ", " ", " ", " ", " ", " ", " ", " "},
-           //         {" ", " ", " ", " ", " ", " ", " ", " "},
-           //         {" ", " ", " ", " ", " ", " ", " ", " "},
-           //         {" ", " ", " ", " ", " ", " ", " ", " "},
-           //         {" ", " ", " ", " ", " ", " ", " ", " "}
-           // };
+            //stringBoard = new String[][]{
+            //        {"r", "n", "b", "q", "k", "b", "n", "r"},
+            //        {"p", "p", "p", "p", "p", "p", "p", "p"},
+            //        {" ", " ", " ", " ", " ", " ", " ", " "},
+            //        {" ", " ", " ", " ", " ", " ", " ", " "},
+            //        {" ", " ", " ", " ", " ", " ", " ", " "},
+            //        {" ", " ", " ", " ", " ", " ", " ", " "},
+            //        {"P", "P", "P", "P", "P", "P", "P", "P"},
+            //        {"R", "N", "B", "Q", "K", "B", "N", "R"}
+            //};
+           stringBoard = new String[][]{
+                   {" ", " ", " ", " ", " ", " ", " ", " "},
+                   {" ", " ", " ", " ", " ", " ", " ", " "},
+                   {" ", " ", " ", " ", " ", " ", " ", " "},
+                   {" ", " ", "k", " ", "R", " ", " ", " "},
+                   {" ", " ", " ", " ", " ", " ", " ", " "},
+                   {" ", " ", " ", " ", " ", " ", " ", " "},
+                   {" ", " ", "Q", " ", " ", " ", " ", " "},
+                   {" ", " ", " ", " ", " ", " ", " ", " "}};
         }
 
+
         bitBoards = convertStringBoardToBitBoards(stringBoard);
-
-        setupKnightAttacks();
-        setupKingAttacks();
-
     }
 
     public HashMap<String, Long> convertStringBoardToBitBoards(String[][] stringBoard)
@@ -148,7 +91,6 @@ public class Game
 
 
 
-
     public long getWhitePiecesBitBoard()
     {
         return getCombinedBitBoards("RNBKQP");
@@ -164,7 +106,34 @@ public class Game
         return getCombinedBitBoards("RNBKQPrnbkqp");
     }
 
-    
+    public long getFriendlyPieces()
+    {
+        if(turn % 2 == 0)
+        {
+            return getWhitePiecesBitBoard();
+        }
+        return getBlackPiecesBitBoard();
+    }
+
+    public long getEnemyPieces()
+    {
+        if(turn % 2 == 0)
+        {
+            return getBlackPiecesBitBoard();
+        }
+
+        return getWhitePiecesBitBoard();
+    }
+
+    public int determineKingSquare()
+    {
+        if(turn % 2 == 0)
+        {
+            return Long.numberOfLeadingZeros(bitBoards.get("K"));
+        }
+        return Long.numberOfLeadingZeros(bitBoards.get("k"));
+    }
+
     public void printStringBoard()
     {
         for(int i = 0; i < 8; i++)
@@ -176,7 +145,6 @@ public class Game
             System.out.println();
         }
     }
-
 
     public long getCombinedBitBoards(String pieces)
     {
@@ -210,23 +178,37 @@ public class Game
     }
 
 
+
+    public boolean isFriendly(long selectedPieceBitBoard)
+    {
+        return (getFriendlyPieces() & selectedPieceBitBoard) != 0;
+    }
+
     public long getPossibleMoves(long selectedPieceBitBoard)
     {
-        String[] friendlyPieces = {"P", "B", "N", "R", "K", "Q"};
-        if(turn % 2 != 0)
+        if(!isFriendly(selectedPieceBitBoard))
         {
-            friendlyPieces = new String[]{"p", "b", "n", "r", "k", "q"};
+            return 0L;
         }
 
-        for(String piece : friendlyPieces)
+        String piece = determinePieceFromBitBoard(selectedPieceBitBoard);
+
+        if(isInCheck())
         {
-            if((bitBoards.get(piece) & selectedPieceBitBoard) != 0)
+            if(piece.equals("K") || piece.equals("k"))
             {
                 return calculatePossibleMoves(piece, selectedPieceBitBoard);
             }
+
+            return calculatePossibleMoves(piece, selectedPieceBitBoard) & getMovesToStopCheck();
         }
 
-        return 0;
+        if((getAllPinnedPiecesValidMoves() & selectedPieceBitBoard) != 0)
+        {
+            return calculatePossibleMoves(piece, selectedPieceBitBoard) & getAllPinnedPiecesValidMoves();
+        }
+
+        return calculatePossibleMoves(piece, selectedPieceBitBoard);
     }
 
     public long calculatePossibleMoves(String piece, long selectedPieceBitBoard)
@@ -236,11 +218,11 @@ public class Game
             return 0L;
         }
         return switch (piece) {
-            case "P", "p" -> possiblePawnMoves(selectedPieceBitBoard);
-            case "R", "r" -> rookMagic.getRookAttacks(selectedPieceBitBoard, getAllPiecesBitBoard(), getCurrentTurnPiecesBitBoard());
-            case "N", "n" -> getKnightAttack(selectedPieceBitBoard);
-            case "B", "b" -> bishopMagic.getBishopAttacks(selectedPieceBitBoard, getAllPiecesBitBoard(), getCurrentTurnPiecesBitBoard());
-            case "Q", "q" -> possibleQueenMoves(selectedPieceBitBoard);
+            case "P", "p" -> pawn.possibleMoves(selectedPieceBitBoard, getAllPiecesBitBoard(), getWhitePiecesBitBoard(), getBlackPiecesBitBoard(), turn);
+            case "R", "r" -> rookMagic.possibleMoves(selectedPieceBitBoard, getAllPiecesBitBoard(), getFriendlyPieces());
+            case "N", "n" -> knight.possibleMoves(selectedPieceBitBoard, getFriendlyPieces());
+            case "B", "b" -> bishopMagic.possibleMoves(selectedPieceBitBoard, getAllPiecesBitBoard(), getFriendlyPieces());
+            case "Q", "q" -> queen.possibleMoves(selectedPieceBitBoard, getAllPiecesBitBoard(), getFriendlyPieces());
             case "K", "k" -> possibleKingMoves(selectedPieceBitBoard);
             default -> 0;
         };
@@ -251,7 +233,7 @@ public class Game
     {
         long possibleMovesBitBoard = getPossibleMoves(selectedPieceBitBoard);
 
-        if((selectedPieceBitBoard & getCurrentTurnPiecesBitBoard()) != 0L && (moveBitBoard & possibleMovesBitBoard) != 0L)
+        if((selectedPieceBitBoard & getFriendlyPieces()) != 0L && (moveBitBoard & possibleMovesBitBoard) != 0L)
         {
             return true;
         }
@@ -261,6 +243,9 @@ public class Game
 
     public void makeMove(long pieceToMoveBitBoard, long moveBitBoard)
     {
+        //Checks if move made affects rooks or king
+        updateCastlingRights(pieceToMoveBitBoard);
+
         if(isMoveShortCastle(pieceToMoveBitBoard, moveBitBoard))
         {
             shortCastle();
@@ -280,29 +265,71 @@ public class Game
         bitBoards.remove(pieceToMove);
         bitBoards.put(pieceToMove, (oldBoard ^ pieceToMoveBitBoard) | moveBitBoard);
 
-
         updateEnemyPiecesBitBoard(moveBitBoard);
 
         turn += 1;
     }
 
-    public long getCurrentTurnPiecesBitBoard()
+    public boolean hasRookMovedWithoutCastling(long pieceBoard, long rookStartingPosition)
     {
-        if(turn % 2 == 0)
+        String rook = "R";
+        if(turn % 2 != 0)
         {
-            return getWhitePiecesBitBoard();
+            rook = "r";
         }
-        return getBlackPiecesBitBoard();
+
+        return determinePieceFromBitBoard(pieceBoard).equals(rook) && (pieceBoard & rookStartingPosition) != 0;
     }
 
-    public long getEnemyPieces()
+    public boolean hasKingMovedWithoutCastling(long pieceBoard, long kingStartingPosition)
+    {
+        String king = "K";
+        if(turn % 2 != 0)
+        {
+            king = "k";
+        }
+
+        return determinePieceFromBitBoard(pieceBoard).equals(king) && (pieceBoard & kingStartingPosition) != 0;
+    }
+
+    public void updateCastlingRights(long pieceToMoveBitBoard)
     {
         if(turn % 2 == 0)
         {
-            return getBlackPiecesBitBoard();
-        }
+            if(!whiteCannotShortCastle && !whiteCannotLongCastle)
+            {
+                whiteCannotShortCastle = hasKingMovedWithoutCastling(pieceToMoveBitBoard, 0x0000000000000008L);
+                whiteCannotLongCastle = hasKingMovedWithoutCastling(pieceToMoveBitBoard, 0x0000000000000008L);
+            }
 
-        return getWhitePiecesBitBoard();
+            else if(!whiteCannotShortCastle)
+            {
+                whiteCannotShortCastle = hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x0000000000000001L);
+            }
+
+            else if(!whiteCannotLongCastle)
+            {
+                whiteCannotLongCastle = hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x0000000000000080L);
+            }
+        }
+        else
+        {
+            if(!blackCannotShortCastle && !blackCannotLongCastle)
+            {
+                blackCannotShortCastle = hasKingMovedWithoutCastling(pieceToMoveBitBoard, 0x0800000000000000L);
+                blackCannotLongCastle = hasKingMovedWithoutCastling(pieceToMoveBitBoard, 0x0800000000000000L);
+            }
+
+            if(!blackCannotShortCastle)
+            {
+                blackCannotShortCastle = hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x0100000000000000L);
+            }
+
+            if (!blackCannotLongCastle)
+            {
+                blackCannotLongCastle = hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x0800000000000000L);
+            }
+        }
     }
 
     public void updateEnemyPiecesBitBoard(long moveBitBoard)
@@ -353,156 +380,6 @@ public class Game
     }
 
 
-    public long possiblePawnMoves(long board)
-    {
-        if(turn % 2 == 0)
-        {
-            return possibleWhitePawnMoves(board);
-        }
-
-        return possibleBlackPawnMoves(board);
-    }
-
-    public long possibleWhitePawnMoves(long board)
-    {
-        long notAFileMask = 0x7f7f7f7f7f7f7f7fL;
-        long notHFileMask = 0xfefefefefefefefeL;
-        long notEightFileMask = 0x00ffffffffffffffL;
-
-        long moveOneUp = (board << 8) & (notEightFileMask) & ~getAllPiecesBitBoard();
-        long moveTwoUp = ((board & whitePawnStartingPosition) << 16) & ~getAllPiecesBitBoard();
-
-        if(moveOneUp == 0L)
-        {
-            moveTwoUp = 0;
-        }
-
-        long takeRight = (board << 7 & (notAFileMask)) & getBlackPiecesBitBoard();
-        long takeLeft = (board << 9 & (notHFileMask))  & getBlackPiecesBitBoard();
-
-        return (moveOneUp | moveTwoUp | takeRight | takeLeft) & ~getWhitePiecesBitBoard();
-    }
-
-    public long possibleBlackPawnMoves(long board)
-    {
-        long notAFileMask = 0x7f7f7f7f7f7f7f7fL;
-        long notHFileMask = 0xfefefefefefefefeL;
-        long notOneFileMask = 0xffffffffffffff00L;
-
-        long moveOneUp = (board >> 8) & (notOneFileMask) & ~getAllPiecesBitBoard();
-        long moveTwoUp = ((board & blackPawnStartingPosition) >> 16) & ~getAllPiecesBitBoard();
-
-        if(moveOneUp == 0L)
-        {
-            moveTwoUp = 0;
-        }
-
-        long takeRight = (board >> 9 & (notAFileMask)) & getWhitePiecesBitBoard();
-        long takeLeft = (board >> 7 & (notHFileMask))  & getWhitePiecesBitBoard();
-        return (moveOneUp | moveTwoUp | takeRight | takeLeft) & ~getBlackPiecesBitBoard();
-    }
-
-
-
-    public long possibleKnightMoves(long board)
-    {
-        long notAFileMask = 0x7f7f7f7f7f7f7f7fL;
-        long notHFileMask = 0xfefefefefefefefeL;
-
-        long notABFileMask = 0x3f3f3f3f3f3f3f3fL;
-        long notGHFileMask = 0xfcfcfcfcfcfcfcfcL;
-
-        long upLeftMove = board << 17 & notHFileMask;
-        long upRightMove = board << 15 & notAFileMask;
-
-        long downLeftMove = board >> 15 & notHFileMask;
-        long downRightMove = board >> 17 & notAFileMask;
-
-        long rightUpMove = board << 6 & notABFileMask;
-        long rightDownMove = board >> 10 & notABFileMask;
-
-        long leftUpMove = board << 10 & notGHFileMask;
-        long leftDownMove = board >> 6 & notGHFileMask;
-
-
-        return (upLeftMove | upRightMove | downLeftMove | downRightMove | rightUpMove | rightDownMove | leftUpMove | leftDownMove) & ~getCurrentTurnPiecesBitBoard();
-    }
-
-    public long possibleBishopMoves(long board)
-    {
-        long notAFileMask = 0x7f7f7f7f7f7f7f7fL;
-        long notHFileMask = 0xfefefefefefefefeL;
-        long allMoves = 0L;
-
-        while(board != 0)
-        {
-            long bishop = 1L << 63 - Long.numberOfLeadingZeros(board);
-            board = board ^ (1L << 63 - Long.numberOfLeadingZeros(board));
-
-            long moveDiagonalNE = calculateSlidingMoves(bishop, true, 7, notHFileMask) & ~getCurrentTurnPiecesBitBoard();
-            long moveDiagonalNW = calculateSlidingMoves(bishop, true, 9, notAFileMask) & ~getCurrentTurnPiecesBitBoard();
-            long moveDiagonalSE = calculateSlidingMoves(bishop, false, 9, notHFileMask) & ~getCurrentTurnPiecesBitBoard();
-            long moveDiagonalSW = calculateSlidingMoves(bishop, false, 7, notAFileMask) & ~getCurrentTurnPiecesBitBoard();
-
-            allMoves = allMoves | moveDiagonalNE | moveDiagonalNW | moveDiagonalSE | moveDiagonalSW;
-        }
-        return allMoves;
-
-    }
-
-    public long possibleRookMoves(long board)
-    {
-        long allMoves = 0L;
-        long notAFileMask = 0x7f7f7f7f7f7f7f7fL;
-        long notHFileMask = 0xfefefefefefefefeL;
-        long notEightFileMask = 0x00ffffffffffffffL;
-        long notOneFileMask = 0xffffffffffffff00L;
-
-        while(board != 0)
-        {
-            long rook = 1L << 63 - Long.numberOfLeadingZeros(board);
-            board = board ^ (1L << 63 - Long.numberOfLeadingZeros(board));
-
-            long moveRight = calculateSlidingMoves(rook, false, 1, notHFileMask);
-            long moveLeft = calculateSlidingMoves(rook, true, 1, notAFileMask);
-
-            long moveUp = calculateSlidingMoves(rook, true, 8, notEightFileMask);
-            long moveDown = calculateSlidingMoves(rook, false, 8, notOneFileMask);
-
-            allMoves = allMoves | moveRight | moveLeft | moveUp | moveDown;
-
-        }
-        return allMoves;
-    }
-
-    public long possibleQueenMoves(long board)
-    {
-        return possibleBishopMoves(board) | possibleRookMoves(board);
-    }
-
-    public long calculateSlidingMoves(long bitBoard, boolean isLeftShift, int shiftAmount, long notFileMask)
-    {
-        long moves = 0L;
-        long currentMove = bitBoard;
-        int count = 0;
-
-        while((getBlackPiecesBitBoard() & moves) == 0 && (getWhitePiecesBitBoard() & moves) == 0 && (currentMove & notFileMask) != 0)
-        {
-            count += 1;
-            if(isLeftShift)
-            {
-                currentMove = bitBoard << count * shiftAmount;
-            }
-            else
-            {
-                currentMove = bitBoard >> count * shiftAmount;
-            }
-
-            moves = (moves | currentMove);
-        }
-
-        return moves;
-    }
 
     public long possibleKingMoves(long bitBoard)
     {
@@ -533,21 +410,252 @@ public class Game
             }
         }
 
-        return (getKingAttack(bitBoard) | shortCastle | longCastle) & ~getCurrentTurnPiecesBitBoard();
+        return (king.getKingAttack(bitBoard) | shortCastle | longCastle) & ~getFriendlyPieces() & ~getAllPossibleEnemyAttacks();
     }
 
 
+    public long getAllPossibleEnemyAttacks()
+    {
+        if(turn % 2 == 0)
+        {
+            return  pawn.getPawnAttacks(bitBoards.get("p"), turn + 1) | bishopMagic.getAllBishopAttacks(bitBoards.get("b"), getAllPiecesBitBoard() & ~bitBoards.get("K"))
+                    | rookMagic.getAllRookAttacks(bitBoards.get("r"), getAllPiecesBitBoard()  & ~bitBoards.get("K")) | queen.getQueenAttacks(bitBoards.get("q"), getAllPiecesBitBoard() & ~bitBoards.get("K"))
+                    | knight.getKnightAttack(bitBoards.get("n")) | king.getKingAttack(bitBoards.get("k"));
+        }
 
-
+        return pawn.getPawnAttacks(bitBoards.get("P"), turn + 1) | bishopMagic.getAllBishopAttacks(bitBoards.get("B"), getAllPiecesBitBoard() & ~bitBoards.get("k"))
+                | rookMagic.getAllRookAttacks(bitBoards.get("R"), getAllPiecesBitBoard() & ~bitBoards.get("k")) | queen.getQueenAttacks(bitBoards.get("Q"), getAllPiecesBitBoard() & ~bitBoards.get("k"))
+                | knight.getKnightAttack(bitBoards.get("N")) | king.getKingAttack(bitBoards.get("K"));
+    }
 
     public boolean isInCheck()
     {
-
-        return false;
+        if(turn % 2 == 0)
+        {
+            return (bitBoards.get("K") & getAllPossibleEnemyAttacks()) != 0;
+        }
+        return (bitBoards.get("k") & getAllPossibleEnemyAttacks()) != 0;
     }
+
+
+
+    public long getMovesToStopCheck()
+    {
+        int kingSquare = determineKingSquare();
+        String[] axialPieces =  new String[]{"r", "q"};
+        String[] diagonalPieces = new String[]{"b", "q"};
+        String knightPiece = "n";
+        String pawnPiece = "p";
+
+        int[][] axialDirections = {{-1, 0}, {1, 0}, {0, 1}, {0, -1}};
+        int[][] diagonalDirections = {{-1, -1}, {1, 1}, {1, -1}, {-1, 1}};
+        int[][] knightDirections = {{1, 2}, {-1, 2}, {-1, -2}, {1, -2}, {2, 1}, {-2, -1}, {-2, 1}, {2, -1}};
+        int[][] pawnDirections = {{-1, -1}, {-1, 1}};
+
+        if(turn % 2 != 0)
+        {
+            axialPieces =  new String[]{"R", "Q"};
+            diagonalPieces = new String[]{"B", "Q"};
+            knightPiece = "N";
+            pawnPiece = "P";
+            
+            pawnDirections = new int[][]{{1, -1}, {1, 1}};
+        }
+
+        long moves = 0L;
+
+
+        for(int[] direction : axialDirections)
+        {
+            moves |= getMovesToStopSlidingCheck(kingSquare, direction, axialPieces);
+        }
+
+        for(int[] direction : diagonalDirections)
+        {
+            moves |= getMovesToStopSlidingCheck(kingSquare, direction, diagonalPieces);
+        }
+
+        for(int[] direction : knightDirections)
+        {
+            moves |= getMovesToStopNonSlidingCheck(kingSquare, direction, knightPiece);
+        }
+        
+        for(int[] direction : pawnDirections)
+        {
+            moves |= getMovesToStopNonSlidingCheck(kingSquare, direction, pawnPiece);
+        }
+
+        //If more than 1 check
+        if(Long.bitCount(moves & getEnemyPieces()) > 1)
+        {
+            return 0L;
+        }
+
+        return moves;
+    }
+
+    public long getMovesToStopSlidingCheck(int kingSquare, int[] direction, String[] slidingPiece)
+    {
+        int row = kingSquare / 8;
+        int col = kingSquare % 8;
+        int rowDirection = direction[0];
+        int colDirection = direction[1];
+
+        row += rowDirection;
+        col += colDirection;
+
+        long moves = 0L;
+        while(0 <= row && row <= 7 && 0 <= col && col <= 7)
+        {
+            long currentSquare = 1L << (63 - (8 * row + col));
+
+            if ((currentSquare & getFriendlyPieces()) != 0)
+            {
+                return 0;
+            }
+
+            moves |= currentSquare;
+
+            for(String piece : slidingPiece)
+            {
+                if ((currentSquare & bitBoards.get(piece)) != 0 )
+                {
+                    return moves;
+                }
+            }
+
+            row += rowDirection;
+            col += colDirection;
+        }
+        return 0;
+    }
+
+    
+    public long getMovesToStopNonSlidingCheck(int kingSquare, int[] direction, String nonSlidingPiece)
+    {
+        int row = kingSquare / 8;
+        int col = kingSquare % 8;
+        int rowDirection = direction[0];
+        int colDirection = direction[1];
+
+        row += rowDirection;
+        col += colDirection;
+
+        if(row < 0 || row > 7 || col < 0 || col > 7)
+        {
+            return 0L;
+        }
+
+        long currentSquare = 1L << (63 - (8 * row + col));
+        if((currentSquare & bitBoards.get(nonSlidingPiece)) == 0)
+        {
+            return 0L;
+        }
+
+        return currentSquare;
+    }
+    
+ 
+
+    public long getAllPinnedPiecesValidMoves()
+    {
+        int kingSquare = determineKingSquare();
+        String[] axialPieces =  new String[]{"r", "q"};
+        String[] diagonalPieces = new String[]{"b", "q"};
+
+        if(turn % 2 != 0)
+        {
+            axialPieces =  new String[]{"R", "Q"};
+            diagonalPieces = new String[]{"B", "Q"};
+        }
+
+        long pinnedPieces = 0L;
+
+        int[][] axialDirections = {{-1, 0}, {1, 0}, {0, 1}, {0, -1}};
+        int[][] diagonalDirections = {{-1, -1}, {1, 1}, {1, -1}, {-1, 1}};
+
+        for(int[] direction : axialDirections)
+        {
+            pinnedPieces |= getPinnedPieceValidMove(kingSquare, direction, axialPieces);
+        }
+
+        for(int[] direction : diagonalDirections)
+        {
+            pinnedPieces |= getPinnedPieceValidMove(kingSquare, direction, diagonalPieces);
+        }
+
+        return pinnedPieces;
+    }
+
+    public long getPinnedPieceValidMove(int kingSquare, int[] direction, String[] checkingPieces)
+    {
+        boolean friendlySeen = false;
+        long moves = 0L;
+
+        int row = kingSquare / 8;
+        int col = kingSquare % 8;
+        int rowDirection = direction[0];
+        int colDirection = direction[1];
+
+        row += rowDirection;
+        col += colDirection;
+
+
+        while(0 <= row && row <= 7 && 0 <= col && col <= 7)
+        {
+            long currentSquare = 1L << (63 - (8 * row + col));
+
+            if ((currentSquare & getFriendlyPieces()) != 0)
+            {
+                if(friendlySeen)
+                {
+                    return 0;
+                }
+                else
+                {
+                    friendlySeen = true;
+                }
+            }
+
+            moves |= currentSquare;
+
+            for(String piece : checkingPieces)
+            {
+                if ((currentSquare & bitBoards.get(piece)) != 0)
+                {
+                    if(friendlySeen)
+                    {
+                        return moves;
+                    }
+                    else
+                    {
+                        return 0L;
+                    }
+                }
+            }
+
+            row += rowDirection;
+            col += colDirection;
+        }
+        return 0L;
+
+    }
+
+
+
+
 
     public boolean canShortCastle()
     {
+        if(whiteCannotShortCastle && turn % 2 == 0)
+        {
+            return false;
+        }
+        else if (blackCannotShortCastle && turn % 2 != 0)
+        {
+            return false;
+        }
+
         long shortCastlingSpaceMask = 0x0000000000000006L;
         long kingLocation = 0x0000000000000008L;
         long rookLocation = 0x0000000000000001L;
@@ -564,6 +672,11 @@ public class Game
             rook = "r";
         }
 
+        if(isInCheck())
+        {
+            return false;
+        }
+
         if((bitBoards.get(king) & kingLocation) != 0 && (bitBoards.get(rook) & rookLocation) != 0)
         {
             if((~getAllPiecesBitBoard() & shortCastlingSpaceMask) != 0)
@@ -573,7 +686,6 @@ public class Game
         }
 
         return false;
-
     }
 
     public void shortCastle()
@@ -620,6 +732,15 @@ public class Game
 
     public boolean canLongCastle()
     {
+        if(whiteCannotLongCastle && turn % 2 == 0)
+        {
+            return false;
+        }
+        else if (blackCannotLongCastle && turn % 2 != 0)
+        {
+            return false;
+        }
+
         long longCastlingSpaceMask = 0x0000000000000070L;
         long kingLocation = 0x0000000000000008L;
         long rookLocation = 0x0000000000000080L;
@@ -634,6 +755,11 @@ public class Game
 
             king = "k";
             rook = "r";
+        }
+
+        if(isInCheck())
+        {
+            return false;
         }
 
         if((bitBoards.get(king) & kingLocation) != 0 && (bitBoards.get(rook) & rookLocation) != 0)
