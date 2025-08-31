@@ -40,13 +40,13 @@ public class Game
             //        {"R", "N", "B", "Q", "K", "B", "N", "R"}
             //};
            stringBoard = new String[][]{
+                   {" ", " ", " ", "q", " ", " ", " ", " "},
+                   {" ", " ", " ", " ", " ", " ", " ", " "},
+                   {" ", " ", " ", " ", " ", " ", " ", "b"},
                    {" ", " ", " ", " ", " ", " ", " ", " "},
                    {" ", " ", " ", " ", " ", " ", " ", " "},
-                   {" ", " ", " ", " ", " ", " ", " ", " "},
-                   {" ", " ", "k", " ", "R", " ", " ", " "},
-                   {" ", " ", " ", " ", " ", " ", " ", " "},
-                   {" ", " ", " ", " ", " ", " ", " ", " "},
-                   {" ", " ", "Q", " ", " ", " ", " ", " "},
+                   {" ", " ", " ", " ", "B", " ", " ", " "},
+                   {"Q", " ", " ", "K", " ", " ", " ", " "},
                    {" ", " ", " ", " ", " ", " ", " ", " "}};
         }
 
@@ -184,6 +184,24 @@ public class Game
         return (getFriendlyPieces() & selectedPieceBitBoard) != 0;
     }
 
+    public long getAllPossibleMoves()
+    {
+        long allMoves = 0L;
+
+        String[] friendlyPieces = {"P", "N", "Q", "R", "K", "B"};
+        if(turn % 2 != 0)
+        {
+            friendlyPieces = new String[]{"p", "n", "q", "r", "k", "b"};
+        }
+
+        for(String piece : friendlyPieces)
+        {
+            allMoves |= getPossibleMoves(bitBoards.get(piece));
+        }
+
+        return allMoves;
+    }
+
     public long getPossibleMoves(long selectedPieceBitBoard)
     {
         if(!isFriendly(selectedPieceBitBoard))
@@ -203,10 +221,6 @@ public class Game
             return calculatePossibleMoves(piece, selectedPieceBitBoard) & getMovesToStopCheck();
         }
 
-        if((getAllPinnedPiecesValidMoves() & selectedPieceBitBoard) != 0)
-        {
-            return calculatePossibleMoves(piece, selectedPieceBitBoard) & getAllPinnedPiecesValidMoves();
-        }
 
         return calculatePossibleMoves(piece, selectedPieceBitBoard);
     }
@@ -217,7 +231,8 @@ public class Game
         {
             return 0L;
         }
-        return switch (piece) {
+
+        long possibleMoves =  switch (piece) {
             case "P", "p" -> pawn.possibleMoves(selectedPieceBitBoard, getAllPiecesBitBoard(), getWhitePiecesBitBoard(), getBlackPiecesBitBoard(), turn);
             case "R", "r" -> rookMagic.possibleMoves(selectedPieceBitBoard, getAllPiecesBitBoard(), getFriendlyPieces());
             case "N", "n" -> knight.possibleMoves(selectedPieceBitBoard, getFriendlyPieces());
@@ -226,6 +241,13 @@ public class Game
             case "K", "k" -> possibleKingMoves(selectedPieceBitBoard);
             default -> 0;
         };
+
+        if((getAllPinnedPiecesValidMoves() & selectedPieceBitBoard) != 0)
+        {
+            return possibleMoves & getAllPinnedPiecesValidMoves();
+        }
+
+        return possibleMoves;
     }
 
 
@@ -605,6 +627,11 @@ public class Game
         {
             long currentSquare = 1L << (63 - (8 * row + col));
 
+            if((currentSquare & getEnemyPieces()) != 0 && !friendlySeen)
+            {
+                return 0L;
+            }
+
             if ((currentSquare & getFriendlyPieces()) != 0)
             {
                 if(friendlySeen)
@@ -632,6 +659,11 @@ public class Game
                         return 0L;
                     }
                 }
+            }
+
+            if(friendlySeen && (currentSquare & getEnemyPieces()) != 0)
+            {
+                return 0L;
             }
 
             row += rowDirection;

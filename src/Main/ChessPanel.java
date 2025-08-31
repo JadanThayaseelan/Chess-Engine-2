@@ -64,6 +64,7 @@ public class ChessPanel extends JPanel
         if((game.getFriendlyPieces() & lastPositionClickedBitBoard) != 0L)
         {
             drawPossibleSquares(g2d, game.getPossibleMoves(lastPositionClickedBitBoard));
+            //drawPossibleSquares(g2d, game.getAllPossibleEnemyAttacks());
 
         }
 
