@@ -582,13 +582,13 @@ public class Game
     public long getAllPinnedPiecesValidMoves()
     {
         int kingSquare = determineKingSquare();
-        String[] axialPieces =  new String[]{"r", "q"};
-        String[] diagonalPieces = new String[]{"b", "q"};
+        String axialPieces =  "rq";
+        String diagonalPieces = "bq";
 
         if(turn % 2 != 0)
         {
-            axialPieces =  new String[]{"R", "Q"};
-            diagonalPieces = new String[]{"B", "Q"};
+            axialPieces =  "RQ";
+            diagonalPieces = "BQ";
         }
 
         long pinnedPieces = 0L;
@@ -609,66 +609,52 @@ public class Game
         return pinnedPieces;
     }
 
-    public long getPinnedPieceValidMove(int kingSquare, int[] direction, String[] checkingPieces)
+    public long getPinnedPieceValidMove(int kingSquare, int[] direction, String checkingPieces)
     {
-        boolean friendlySeen = false;
+        long movePath = getPotentialAttackerPath(kingSquare, direction, checkingPieces);
+        int numberOfFriendlyPieces = Long.bitCount(movePath & getFriendlyPieces());
+
+        if(numberOfFriendlyPieces == 1)
+        {
+            return movePath;
+        }
+
+        return 0L;
+    }
+
+    public long getPotentialAttackerPath(int kingSquare, int[] direction, String checkingPieces)
+    {
         long moves = 0L;
 
-        int row = kingSquare / 8;
-        int col = kingSquare % 8;
         int rowDirection = direction[0];
         int colDirection = direction[1];
 
-        row += rowDirection;
-        col += colDirection;
+        int row = kingSquare / 8 + rowDirection;
+        int col = kingSquare % 8 + colDirection;
 
+        long checkingPiecesBitboard = getCombinedBitBoards(checkingPieces);
+        long nonCheckingPiecesBitboard = getEnemyPieces() & ~checkingPiecesBitboard;
 
         while(0 <= row && row <= 7 && 0 <= col && col <= 7)
         {
             long currentSquare = 1L << (63 - (8 * row + col));
 
-            if((currentSquare & getEnemyPieces()) != 0 && !friendlySeen)
+            if((currentSquare & nonCheckingPiecesBitboard) != 0)
             {
                 return 0L;
-            }
-
-            if ((currentSquare & getFriendlyPieces()) != 0)
-            {
-                if(friendlySeen)
-                {
-                    return 0;
-                }
-                else
-                {
-                    friendlySeen = true;
-                }
             }
 
             moves |= currentSquare;
 
-            for(String piece : checkingPieces)
+            if((currentSquare & checkingPiecesBitboard) != 0)
             {
-                if ((currentSquare & bitBoards.get(piece)) != 0)
-                {
-                    if(friendlySeen)
-                    {
-                        return moves;
-                    }
-                    else
-                    {
-                        return 0L;
-                    }
-                }
-            }
-
-            if(friendlySeen && (currentSquare & getEnemyPieces()) != 0)
-            {
-                return 0L;
+                return moves;
             }
 
             row += rowDirection;
             col += colDirection;
         }
+
         return 0L;
 
     }
