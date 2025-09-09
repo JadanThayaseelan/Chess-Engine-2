@@ -1,5 +1,6 @@
 package Test;
 
+import Main.Bitboard;
 import Main.Game;
 import Main.Pieces.Knight;
 import org.junit.jupiter.api.DisplayName;
@@ -22,17 +23,18 @@ public class KingMovesTest
 
         String[][] pieceToMove = new String[8][8];
         pieceToMove[startingPosition[0]][startingPosition[1]] = piece;
-        long pieceToMoveBitBoard = game.generateBitBoard(pieceToMove, piece);
+        long pieceToMoveBitBoard = Bitboard.generateBitBoard(pieceToMove, piece);
 
-        long expectedPossibleMovesBitBoard = game.generateBitBoard(possibleMoves, "-");
-        long actualPossibleMovesBitBoard = game.calculatePossibleMoves(piece, pieceToMoveBitBoard);
+        long expectedPossibleMovesBitBoard = Bitboard.generateBitBoard(possibleMoves, "-");
+        long actualPossibleMovesBitBoard = game.calculatePossibleMoves(pieceToMoveBitBoard);
+
 
         assertEquals(expectedPossibleMovesBitBoard, actualPossibleMovesBitBoard);
     }
 
     public int[] getStartingPositionFromStringBoard(Game game)
     {
-        String[][] stringBoard = game.convertBitBoardsToStringBoard();
+        String[][] stringBoard = Bitboard.convertBitBoardsToStringBoard(game.bitBoards);
         int[] startingPosition = new int[2];
 
         for(int i = 0; i < 8; i++)
@@ -280,6 +282,7 @@ public class KingMovesTest
                 {" ", " ", " ", " ", " ", " ", " ", " "},
                 {"-", "-", " ", " ", " ", " ", " ", " "},
                 {" ", " ", " ", " ", " ", " ", " ", " "}};
+
         testPossibleKingMoves(game, possibleMoves, "K");
     }
 

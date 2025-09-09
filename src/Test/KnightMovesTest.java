@@ -1,8 +1,10 @@
 package Test;
 
+import Main.Bitboard;
 import Main.Game;
 import Main.Game;
 import Main.Pieces.Knight;
+import com.sun.source.tree.BinaryTree;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.RepeatedTest;
@@ -60,9 +62,9 @@ public class KnightMovesTest
             expectedPossibleMoves[move[0]][move[1]] = piece;
         }
 
-        long pieceToMoveBitBoard = game.generateBitBoard(pieceToMove, piece);
+        long pieceToMoveBitBoard = Bitboard.generateBitBoard(pieceToMove, piece);
 
-        long expectedPossibleMovesBitBoard = game.generateBitBoard(expectedPossibleMoves, piece);
+        long expectedPossibleMovesBitBoard = Bitboard.generateBitBoard(expectedPossibleMoves, piece);
         long actualPossibleMovesBitBoard = new Knight().possibleMoves(pieceToMoveBitBoard, game.getFriendlyPieces());
 
         assertEquals(expectedPossibleMovesBitBoard, actualPossibleMovesBitBoard);

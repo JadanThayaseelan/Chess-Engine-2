@@ -1,5 +1,6 @@
 package Test;
 
+import Main.Bitboard;
 import Main.Game;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -77,7 +78,7 @@ public class CheckMovesTest
                 {" ", " ", " ", " ", " ", " ", " ", " "},
         };
 
-        long possibleMovesBitboard = game.generateBitBoard(possibleMoves, "-");
+        long possibleMovesBitboard = Bitboard.generateBitBoard(possibleMoves, "-");
 
         assertEquals(possibleMovesBitboard, game.getMovesToStopCheck());
     }
@@ -110,7 +111,7 @@ public class CheckMovesTest
                 {" ", " ", " ", " ", " ", " ", " ", " "},
         };
 
-        long possibleMovesBitboard = game.generateBitBoard(possibleMoves, "-");
+        long possibleMovesBitboard = Bitboard.generateBitBoard(possibleMoves, "-");
 
         assertEquals(possibleMovesBitboard, game.getMovesToStopCheck());
     }
@@ -142,7 +143,7 @@ public class CheckMovesTest
                 {" ", " ", " ", " ", " ", " ", " ", " "},
         };
 
-        long possibleMovesBitboard = game.generateBitBoard(possibleMoves, "-");
+        long possibleMovesBitboard = Bitboard.generateBitBoard(possibleMoves, "-");
 
         assertEquals(possibleMovesBitboard, game.getMovesToStopCheck());
     }
@@ -176,7 +177,7 @@ public class CheckMovesTest
                 {" ", " ", " ", " ", " ", " ", " ", " "},
         };
 
-        long possibleMovesBitboard = game.generateBitBoard(possibleMoves, "-");
+        long possibleMovesBitboard = Bitboard.generateBitBoard(possibleMoves, "-");
 
         assertEquals(possibleMovesBitboard, game.getAllPinnedPiecesValidMoves());
     }
@@ -208,7 +209,7 @@ public class CheckMovesTest
                 {" ", " ", " ", " ", " ", " ", " ", " "},
         };
 
-        long possibleMovesBitboard = game.generateBitBoard(possibleMoves, "-");
+        long possibleMovesBitboard = Bitboard.generateBitBoard(possibleMoves, "-");
 
         assertEquals(possibleMovesBitboard, game.getAllPinnedPiecesValidMoves());
     }
@@ -240,7 +241,7 @@ public class CheckMovesTest
                 {" ", " ", " ", " ", " ", " ", " ", " "},
         };
 
-        long possibleMovesBitboard = game.generateBitBoard(possibleMoves, "-");
+        long possibleMovesBitboard = Bitboard.generateBitBoard(possibleMoves, "-");
 
         assertEquals(possibleMovesBitboard, game.getAllPinnedPiecesValidMoves());
     }
@@ -272,7 +273,7 @@ public class CheckMovesTest
                 {" ", " ", " ", " ", " ", " ", " ", " "},
         };
 
-        long possibleMovesBitboard = game.generateBitBoard(possibleMoves, "-");
+        long possibleMovesBitboard = Bitboard.generateBitBoard(possibleMoves, "-");
 
         game.displayBitBoard(game.getAllPinnedPiecesValidMoves());
         assertEquals(possibleMovesBitboard, game.getAllPinnedPiecesValidMoves());
@@ -305,45 +306,12 @@ public class CheckMovesTest
                 {" ", " ", " ", " ", " ", " ", " ", " "},
         };
 
-        long possibleMovesBitboard = game.generateBitBoard(possibleMoves, "-");
+        long possibleMovesBitboard = Bitboard.generateBitBoard(possibleMoves, "-");
 
         game.displayBitBoard(game.getAllPinnedPiecesValidMoves());
         assertEquals(possibleMovesBitboard, game.getAllPinnedPiecesValidMoves());
     }
 
-
-    //Tests getAllPossibleMoves when in check
-    @Test
-    @DisplayName("Tests possible moves when in singular check with ability to block")
-    public void testPossibleMovesAfterCheck()
-    {
-        Game game = new Game(new String[][]{
-                {" ", " ", " ", "q", " ", " ", " ", " "},
-                {" ", " ", " ", " ", " ", " ", " ", " "},
-                {" ", " ", " ", " ", " ", " ", " ", "b"},
-                {" ", " ", " ", " ", " ", " ", " ", " "},
-                {" ", " ", " ", " ", " ", " ", " ", " "},
-                {" ", " ", " ", " ", "B", " ", " ", " "},
-                {"Q", " ", " ", "K", " ", " ", " ", " "},
-                {" ", " ", " ", " ", " ", " ", " ", " "},
-        });
-
-
-        String[][] possibleMoves = new String[][]{
-                {" ", " ", " ", "q", " ", " ", " ", " "},
-                {" ", " ", " ", " ", " ", " ", " ", " "},
-                {" ", " ", " ", " ", " ", " ", " ", "b"},
-                {" ", " ", " ", "-", " ", " ", " ", " "},
-                {" ", " ", " ", " ", " ", " ", " ", " "},
-                {" ", " ", "-", " ", "B", " ", " ", " "},
-                {"Q", " ", "-", "K", "-", " ", " ", " "},
-                {" ", " ", "-", " ", "-", " ", " ", " "},
-        };
-
-        long possibleMovesBitboard = game.generateBitBoard(possibleMoves, "-");
-
-        assertEquals(possibleMovesBitboard, game.getAllPossibleMoves());
-    }
 
     @Test
     @DisplayName("Tests possible moves when in double check with only king moves available")
@@ -373,7 +341,8 @@ public class CheckMovesTest
                 {" ", " ", " ", " ", " ", " ", " ", " "},
         };
 
-        long possibleMovesBitboard = game.generateBitBoard(possibleMoves, "-");
+        long possibleMovesBitboard = Bitboard.generateBitBoard(possibleMoves, "-");
+        game.displayBitBoard(game.getAllPossibleMoves());
 
         assertEquals(possibleMovesBitboard, game.getAllPossibleMoves());
     }

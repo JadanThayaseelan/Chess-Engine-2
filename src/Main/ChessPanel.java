@@ -25,32 +25,44 @@ public class ChessPanel extends JPanel
         addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-
-                int row = (e.getY() - boardOffsetY) / squareSize;
-                int column = (e.getX() - boardOffsetX) / squareSize;
-
-                if(row < 0 || row > 7 || column < 0 || column > 7)
+                if (game.turn % 2 == 0)
                 {
-                    return;
-                }
+                    int row = (e.getY() - boardOffsetY) / squareSize;
+                    int column = (e.getX() - boardOffsetX) / squareSize;
 
-                int offset = row * 8 + column;
+                    if (row < 0 || row > 7 || column < 0 || column > 7) {
+                        return;
+                    }
 
-                String positionClickedBinary = "0".repeat(offset) + "1" + "0".repeat(63 - offset);
-                long positionClickedBitBoard = Long.parseUnsignedLong(positionClickedBinary, 2);
+                    int offset = row * 8 + column;
 
-                if((game.getFriendlyPieces() & positionClickedBitBoard) != 0)
-                {
-                    lastPositionClickedBitBoard = positionClickedBitBoard;
+                    String positionClickedBinary = "0".repeat(offset) + "1" + "0".repeat(63 - offset);
+                    long positionClickedBitBoard = Long.parseUnsignedLong(positionClickedBinary, 2);
+
+                    if ((game.getFriendlyPieces() & positionClickedBitBoard) != 0) {
+                        lastPositionClickedBitBoard = positionClickedBitBoard;
+                    } else {
+                        if (game.isValidMove(lastPositionClickedBitBoard, positionClickedBitBoard)) {
+                            game.makeMove(lastPositionClickedBitBoard, positionClickedBitBoard);
+                        }
+                    }
+
+                    repaint();
                 }
                 else
                 {
-                    if(game.isValidMove(lastPositionClickedBitBoard, positionClickedBitBoard))
-                    {
-                        game.makeMove(lastPositionClickedBitBoard, positionClickedBitBoard);
-                    }
+                    Engine engine = new Engine();
+                    char startSquareMask = 0xFC00;
+                    char endSquareMask = 0x03F0;
+
+                    char move = engine.iterativeDeepening(6, game);
+                    long startMove = 1L << 63 - ((move & startSquareMask) >> 10);
+                    long endMove = 1L << 63 - ((move & endSquareMask) >> 4);
+
+                    game.makeMove(startMove, endMove);
+
+                    repaint();
                 }
-                repaint();
             }
         });
     }
@@ -64,7 +76,7 @@ public class ChessPanel extends JPanel
         if((game.getFriendlyPieces() & lastPositionClickedBitBoard) != 0L)
         {
             drawPossibleSquares(g2d, game.getPossibleMoves(lastPositionClickedBitBoard));
-            //drawPossibleSquares(g2d, game.getAllPossibleEnemyAttacks());
+//            drawPossibleSquares(g2d, game.getMovesToStopCheck());
 
         }
 
@@ -112,7 +124,7 @@ public class ChessPanel extends JPanel
         {
             for(int j = 0; j < 8; j++)
             {
-                String piece = game.convertBitBoardsToStringBoard()[i][j];
+                String piece = Bitboard.convertBitBoardsToStringBoard(game.bitBoards)[i][j];
                 if(piece != null)
                 {
                     BufferedImage img = ImageIO.read(new File(letterToImage.get(piece)));
@@ -140,5 +152,6 @@ public class ChessPanel extends JPanel
             }
         }
     }
+
 }
 

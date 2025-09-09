@@ -1,5 +1,6 @@
 package Test;
 
+import Main.Bitboard;
 import Main.Game;
 import Main.Pieces.Pawn;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,10 +60,10 @@ public class PawnMovesTest
             expectedPossibleMoves[move[0]][move[1]] = piece;
         }
 
-        long pieceToMoveBitBoard = game.generateBitBoard(pieceToMove, piece);
+        long pieceToMoveBitBoard = Bitboard.generateBitBoard(pieceToMove, piece);
 
-        long expectedPossibleMovesBitBoard = game.generateBitBoard(expectedPossibleMoves, piece);
-        long actualPossibleMovesBitBoard = new Pawn().possibleMoves(pieceToMoveBitBoard, game.getAllPiecesBitBoard(), game.getWhitePiecesBitBoard(), game.getBlackPiecesBitBoard(), game.turn);
+        long expectedPossibleMovesBitBoard = Bitboard.generateBitBoard(expectedPossibleMoves, piece);
+        long actualPossibleMovesBitBoard = new Pawn().possibleMoves(pieceToMoveBitBoard, Bitboard.getAllPieces(game.bitBoards), Bitboard.getWhitePieces(game.bitBoards), Bitboard.getBlackPieces(game.bitBoards), game.turn);
 
         assertEquals(expectedPossibleMovesBitBoard, actualPossibleMovesBitBoard);
     }

@@ -13,7 +13,7 @@ public class BishopMagicTest
     static BishopMagic bishopMagic;
 
     @BeforeAll
-    public static void setupRookMagic()
+    public static void setupBishopMagic()
     {
         bishopMagic = new BishopMagic();
     }
