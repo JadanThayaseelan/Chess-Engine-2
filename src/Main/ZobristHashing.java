@@ -88,20 +88,20 @@ public final class ZobristHashing
             }
         }
 
-        if(game.whiteCannotShortCastle)
+        if((game.cannotCastleFlags & 0b1000) != 0)
         {
             hash ^= castlingRandoms[0][0];
         }
-        if(game.whiteCannotLongCastle)
+        if((game.cannotCastleFlags & 0b0100) != 0)
         {
             hash ^= castlingRandoms[0][1];
         }
 
-        if(game.blackCannotShortCastle)
+        if((game.cannotCastleFlags & 0b0010) != 0)
         {
             hash ^= castlingRandoms[1][0];
         }
-        if(game.blackCannotLongCastle)
+        if((game.cannotCastleFlags & 0b0001) != 0)
         {
             hash ^= castlingRandoms[1][1];
         }

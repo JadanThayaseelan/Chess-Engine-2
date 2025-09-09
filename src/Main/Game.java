@@ -23,6 +23,12 @@ import java.util.logging.Logger;
  * 9 - r
  * 10 - q
  * 11 - k
+ *
+ * cannotCastleFlags
+ * white short castle
+ * white long castle
+ * black short castle
+ * black long castle
  */
 public class Game
 {
@@ -37,15 +43,16 @@ public class Game
 
     public int turn = 0;
 
-    public boolean whiteCannotShortCastle = false;
-    public boolean whiteCannotLongCastle = false;
-
-    public boolean blackCannotShortCastle = false;
-    public boolean blackCannotLongCastle = false;
+    public byte cannotCastleFlags = 0b0000;
 
     public long whitePiecesBitboard;
     public long blackPiecesBitboard;
     public long allPiecesBitboard;
+
+    private byte quiet = 0;
+    private byte capture = 4;
+    private byte kingCastle = 2;
+    private byte queenCastle = 3;
 
 
     public Game(String[][] stringBoard)
@@ -185,25 +192,43 @@ public class Game
         return calculatePseudoLegalMoves(selectedPieceBitBoard);
     }
 
-    public boolean isMoveLegal(long selectedPieceBitBoard, long moveBitBoard)
+    public ArrayList<Character> calculateAllPseudoLegalMoves()
+    {
+        ArrayList<Character> allMoves = new ArrayList<>();
+        if(turn % 2 == 0)
+        {
+            allMoves.addAll(pawn.calculateWhitePawnMoves(bitBoards[0], allPiecesBitboard, blackPiecesBitboard));
+            allMoves.addAll(knight.calculateKnightMoves(bitBoards[1], getFriendlyPieces(), getEnemyPieces()));
+            allMoves.addAll(bishopMagic.calculateBishopMoves(bitBoards[2], allPiecesBitboard, getEnemyPieces(), getFriendlyPieces()));
+            allMoves.addAll(rookMagic.calculateRookMoves(bitBoards[3], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
+            allMoves.addAll(queen.calculateQueenMoves(bitBoards[4], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
+            allMoves.addAll(calculateKingMoves(bitBoards[5], getEnemyPieces()));
+        }
+        else
+        {
+            allMoves.addAll(pawn.calculateBlackPawnMoves(bitBoards[6], allPiecesBitboard, whitePiecesBitboard));
+            allMoves.addAll(knight.calculateKnightMoves(bitBoards[7], getFriendlyPieces(), getEnemyPieces()));
+            allMoves.addAll(bishopMagic.calculateBishopMoves(bitBoards[8], allPiecesBitboard, getEnemyPieces(), getFriendlyPieces()));
+            allMoves.addAll(rookMagic.calculateRookMoves(bitBoards[9], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
+            allMoves.addAll(queen.calculateQueenMoves(bitBoards[10], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
+            allMoves.addAll(calculateKingMoves(bitBoards[11], getEnemyPieces()));
+        }
+
+        return allMoves;
+    }
+
+    public boolean isMoveLegal(char move)
     {
         long[] bitboardsCopy = Bitboard.copy(bitBoards);
-        boolean whiteCannotShortCastleCopy = whiteCannotShortCastle;
-        boolean whiteCannotLongCastleCopy = whiteCannotLongCastle;
-        boolean blackCannotShortCastleCopy = blackCannotShortCastle;
-        boolean blackCannotLongCastleCopy = blackCannotLongCastle;
+        byte cannotCastleFlagsCopy = cannotCastleFlags;
 
-        makeMove(selectedPieceBitBoard, moveBitBoard);
+        makeEngineMove(move);
 
         turn -= 1;
         boolean isCheck = isInCheck();
 
         bitBoards = bitboardsCopy;
-        whiteCannotShortCastle = whiteCannotShortCastleCopy;
-        whiteCannotLongCastle = whiteCannotLongCastleCopy;
-        blackCannotShortCastle = blackCannotShortCastleCopy;
-
-        blackCannotLongCastle = blackCannotLongCastleCopy;
+        cannotCastleFlags = cannotCastleFlagsCopy;
         whitePiecesBitboard = Bitboard.getWhitePieces(bitBoards);
         blackPiecesBitboard = Bitboard.getBlackPieces(bitBoards);
         allPiecesBitboard = Bitboard.getAllPieces(bitBoards);
@@ -316,7 +341,7 @@ public class Game
             special0 = 1;
         }
 
-        if(determinePieceIndexFromBitBoard(moveBitBoard) != -1)
+        if((moveBitBoard & allPiecesBitboard) != 0)
         {
             capture = 1;
         }
@@ -383,35 +408,9 @@ public class Game
 
 
 
-    public char[] getAllMoves()
+    public ArrayList<Character> getAllMoves()
     {
-        char[] moves = new char[218];
-        int currentIndex = 0;
-
-        long friendlyPieces = getFriendlyPieces();
-        for(int i = 0; i < 64; i++)
-        {
-            long currentSquareBitboard = 1L << 63 - i;
-
-            if((currentSquareBitboard & friendlyPieces) == 0)
-            {
-                continue;
-            }
-
-            long possibleMoves = getPseudoLegalMoves(currentSquareBitboard);
-            while (possibleMoves != 0)
-            {
-                long currentMove = 1L << 63 - Long.numberOfLeadingZeros(possibleMoves);
-                possibleMoves &= ~currentMove;
-
-                moves[currentIndex] = convertTo16BitMove(currentSquareBitboard, currentMove);
-                currentIndex += 1;
-            }
-        }
-
-        char[] allMoves = new char[currentIndex];
-        System.arraycopy(moves, 0, allMoves, 0, currentIndex);
-        return allMoves;
+        return calculateAllPseudoLegalMoves();
     }
 
 //    public void makeRandomMove()
@@ -462,13 +461,59 @@ public class Game
 
         if(isPawnOnPromotionSquare())
         {
-            promote();
+            promote((byte)0b1011);
         }
 
         whitePiecesBitboard = Bitboard.getWhitePieces(bitBoards);
         blackPiecesBitboard = Bitboard.getBlackPieces(bitBoards);
         allPiecesBitboard = Bitboard.getAllPieces(bitBoards);
         turn += 1;
+    }
+
+    public void makeEngineMove(char move)
+    {
+
+        int startSquare = MoveGeneration.getStartSquare(move);
+        int endSquare = MoveGeneration.getEndSquare(move);
+
+        long pieceToMoveBitBoard = 1L << 63 - startSquare;
+        long moveBitBoard = 1L << 63 - endSquare;
+
+        updateCastlingRights(pieceToMoveBitBoard);
+
+        if((move & 0b0010) != 0)
+        {
+            shortCastle();
+            turn += 1;
+            return;
+        }
+        else if((move & 0b0011) != 0)
+        {
+            longCastle();
+            turn += 1;
+            return;
+        }
+
+        int pieceIndex = determinePieceIndexFromBitBoard(pieceToMoveBitBoard);
+        int capturedPieceIndex = determinePieceIndexFromBitBoard(moveBitBoard);
+
+        bitBoards[pieceIndex] = (bitBoards[pieceIndex] & ~pieceToMoveBitBoard) | moveBitBoard;
+
+        if(capturedPieceIndex != -1)
+        {
+            updateEnemyPiecesBitBoard(moveBitBoard);
+        }
+
+        if((move & 0b0100) != 0)
+        {
+            promote((byte) (move & 0b1111));
+        }
+
+        whitePiecesBitboard = Bitboard.getWhitePieces(bitBoards);
+        blackPiecesBitboard = Bitboard.getBlackPieces(bitBoards);
+        allPiecesBitboard = Bitboard.getAllPieces(bitBoards);
+        turn += 1;
+
     }
 
 
@@ -498,38 +543,54 @@ public class Game
     {
         if(turn % 2 == 0)
         {
-            if(!whiteCannotShortCastle && !whiteCannotLongCastle)
+            if(((cannotCastleFlags & 0b1100) == 0))
             {
-                whiteCannotShortCastle = hasKingMovedWithoutCastling(pieceToMoveBitBoard, 0x0000000000000008L);
-                whiteCannotLongCastle = hasKingMovedWithoutCastling(pieceToMoveBitBoard, 0x0000000000000008L);
+                if(hasKingMovedWithoutCastling(pieceToMoveBitBoard, 0x0000000000000008L))
+                {
+                    cannotCastleFlags |= 0b1100;
+                }
             }
 
-            else if(!whiteCannotShortCastle)
+            else if((cannotCastleFlags & (0b1000)) == 0 )
             {
-                whiteCannotShortCastle = hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x0000000000000001L);
+                 if(hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x0000000000000001L))
+                 {
+                     cannotCastleFlags |= 0b1000;
+                 }
             }
 
-            else if(!whiteCannotLongCastle)
+            else if((cannotCastleFlags & (0b0100)) == 0 )
             {
-                whiteCannotLongCastle = hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x0000000000000080L);
+                if(hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x0000000000000080L))
+                {
+                    cannotCastleFlags |= 0b0100;
+                }
             }
         }
         else
         {
-            if(!blackCannotShortCastle && !blackCannotLongCastle)
+            if(((cannotCastleFlags & 0b0011) == 0))
             {
-                blackCannotShortCastle = hasKingMovedWithoutCastling(pieceToMoveBitBoard, 0x0800000000000000L);
-                blackCannotLongCastle = hasKingMovedWithoutCastling(pieceToMoveBitBoard, 0x0800000000000000L);
+                if(hasKingMovedWithoutCastling(pieceToMoveBitBoard, 0x0800000000000000L))
+                {
+                    cannotCastleFlags |= 0b1100;
+                }
             }
 
-            if(!blackCannotShortCastle)
+            if(((cannotCastleFlags & 0b0010) == 0))
             {
-                blackCannotShortCastle = hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x0100000000000000L);
+                if(hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x0100000000000000L))
+                {
+                    cannotCastleFlags |= 0b0010;
+                }
             }
 
-            if (!blackCannotLongCastle)
+            if (((cannotCastleFlags & 0b0001) == 0))
             {
-                blackCannotLongCastle = hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x8000000000000000L);
+                if(hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x8000000000000000L))
+                {
+                    cannotCastleFlags |= 0b0001;
+                }
             }
         }
     }
@@ -613,6 +674,61 @@ public class Game
 
         return (king.getKingAttack(bitBoard) | shortCastle | longCastle) & ~getFriendlyPieces();
     }
+
+    public ArrayList<Character> calculateKingMoves(long board, long enemyPieces)
+    {
+        ArrayList<Character> moves = new ArrayList<>();
+
+        long possibleMoves = king.getKingAttack(board) & ~ getFriendlyPieces();
+        while(possibleMoves != 0)
+        {
+            long move = 1L << Long.numberOfTrailingZeros(possibleMoves);
+            possibleMoves &= ~move;
+
+            if((move & enemyPieces) != 0)
+            {
+                moves.add(MoveGeneration.encodeMove(board, move, capture));
+            }
+            else
+            {
+                moves.add(MoveGeneration.encodeMove(board, move, quiet));
+            }
+        }
+
+        long shortCastle = 0;
+        if (canShortCastle())
+        {
+            if(turn % 2 == 0)
+            {
+                shortCastle = 0x0000000000000002L;
+            }
+            else
+            {
+                shortCastle = 0x0200000000000000L;
+            }
+
+            moves.add(MoveGeneration.encodeMove(board, shortCastle, kingCastle));
+        }
+
+        long longCastle = 0;
+        if(canLongCastle())
+        {
+            if(turn % 2 == 0)
+            {
+                longCastle = 0x0000000000000020L;
+            }
+            else
+            {
+                longCastle = 0x2000000000000000L;
+            }
+            moves.add(MoveGeneration.encodeMove(board, longCastle, kingCastle));
+        }
+
+
+
+        return moves;
+    }
+
 
 
     public long getAllPossibleEnemyAttacks()
@@ -862,11 +978,11 @@ public class Game
 
     public boolean canShortCastle()
     {
-        if(whiteCannotShortCastle && turn % 2 == 0)
+        if((cannotCastleFlags & 0b1000) != 0 && turn % 2 == 0)
         {
             return false;
         }
-        else if (blackCannotShortCastle && turn % 2 != 0)
+        else if ((cannotCastleFlags & 0b0010) != 0 && turn % 2 != 0)
         {
             return false;
         }
@@ -951,11 +1067,11 @@ public class Game
 
     public boolean canLongCastle()
     {
-        if(whiteCannotLongCastle && turn % 2 == 0)
+        if((cannotCastleFlags & 0b0100) != 0 && turn % 2 == 0)
         {
             return false;
         }
-        else if (blackCannotLongCastle && turn % 2 != 0)
+        else if ((cannotCastleFlags & 0b0001) != 0 && turn % 2 != 0)
         {
             return false;
         }
@@ -1052,8 +1168,26 @@ public class Game
         return (blackPromotionSquaresMask & bitBoards[6]) != 0;
     }
 
-    public void promote()
+    public void promote(byte promotion)
     {
+        int promotionPieceIndex;
+        if((promotion & 0b1000) != 0)
+        {
+            promotionPieceIndex = 1;
+        }
+        else if((promotion & 0b1001) != 0)
+        {
+            promotionPieceIndex = 2;
+        }
+        else if((promotion & 0b1010) != 0)
+        {
+            promotionPieceIndex = 3;
+        }
+        else
+        {
+            promotionPieceIndex = 4;
+        }
+
         long whitePromotionSquaresMask = 0xFF00000000000000L;
         long blackPromotionSquaresMask = 0x00000000000000FFL;
 
@@ -1061,13 +1195,14 @@ public class Game
         {
             long pawnToPromote = bitBoards[0] & whitePromotionSquaresMask;
             bitBoards[0] = bitBoards[0] ^ pawnToPromote;
-            bitBoards[4] = bitBoards[4] | pawnToPromote;
+            bitBoards[promotionPieceIndex] = bitBoards[promotionPieceIndex] | pawnToPromote;
         }
         else
         {
+            promotionPieceIndex += 6;
             long pawnToPromote = bitBoards[6] & blackPromotionSquaresMask;
             bitBoards[6] = bitBoards[6] ^ pawnToPromote;
-            bitBoards[10] = bitBoards[10] | pawnToPromote;
+            bitBoards[promotionPieceIndex] = bitBoards[promotionPieceIndex] | pawnToPromote;
         }
     }
 

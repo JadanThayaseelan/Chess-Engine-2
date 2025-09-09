@@ -14,4 +14,15 @@ public final class MoveGeneration
 
         return (char) (startSquare << 10 | endSquare << 4 | flags);
     }
+
+    public static int getStartSquare(char move)
+    {
+        return (move & 0xFC00) >> 10;
+    }
+
+    public static int getEndSquare(char move)
+    {
+        return (move & 0x03F0) >> 4;
+    }
+
 }

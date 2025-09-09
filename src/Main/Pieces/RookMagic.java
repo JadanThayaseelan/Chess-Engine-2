@@ -1,9 +1,14 @@
 package Main.Pieces;
 
+import Main.MoveGeneration;
+
 import java.util.ArrayList;
 
 public class RookMagic
 {
+
+    private byte quiet = 0;
+    private byte capture = 4;
 
     public RookMagic()
     {
@@ -244,6 +249,34 @@ public class RookMagic
         }
 
         return moves & ~friendlyPieces;
+    }
+
+    public ArrayList<Character> calculateRookMoves(long board, long allPieces, long friendlyPieces, long enemyPieces)
+    {
+        ArrayList<Character> moves = new ArrayList<>();
+        while(board != 0)
+        {
+            long rookStart = 1L << Long.numberOfTrailingZeros(board);
+            board = board ^ rookStart;
+
+            long possibleMoves = getRookAttacks(rookStart, allPieces) & ~friendlyPieces;
+            while (possibleMoves != 0)
+            {
+                long move = 1L << Long.numberOfTrailingZeros(possibleMoves);
+                possibleMoves &= ~ move;
+                if((possibleMoves & enemyPieces) != 0)
+                {
+
+                    moves.add(MoveGeneration.encodeMove(rookStart, move, capture));
+                }
+                else
+                {
+                    moves.add(MoveGeneration.encodeMove(rookStart, move, quiet));
+                }
+            }
+        }
+
+        return moves;
     }
 
 

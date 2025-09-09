@@ -77,17 +77,17 @@ public class Evaluation
     public int evaluate(long[] bitboards, Game game)
     {
 
-        return getColourEvaluation("W", bitboards) + getColourEvaluation("B", bitboards);
+        return getColourEvaluation(true, bitboards) + getColourEvaluation(false, bitboards);
 
         //return getColourEvaluation("B", bitboards) - getColourEvaluation("W", bitboards);
     }
 
 
-    public int getColourEvaluation(String colour, long[] bitboards)
+    public int getColourEvaluation(boolean isWhite, long[] bitboards)
     {
         int start = 0;
         int end = 5;
-        if(colour.equals("B"))
+        if(!isWhite)
         {
             start = 6;
             end = 11;

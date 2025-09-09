@@ -1,10 +1,15 @@
 package Main.Pieces;
 
+import Main.MoveGeneration;
+
 import java.util.ArrayList;
 import java.util.Random;
 
 public class BishopMagic
 {
+
+    private byte quiet = 0;
+    byte capture = 4;
 
     public BishopMagic()
     {
@@ -366,5 +371,33 @@ public class BishopMagic
         }
 
         return moves & ~friendlyPieces;
+    }
+
+    public ArrayList<Character> calculateBishopMoves(long board, long allPieces, long enemyPieces, long friendlyPieces)
+    {
+        ArrayList<Character> moves = new ArrayList<>();
+        while(board != 0)
+        {
+            long bishopStart = 1L << Long.numberOfTrailingZeros(board);
+            board = board ^ bishopStart;
+
+            long possibleMoves = getBishopAttacks(bishopStart, allPieces) & ~friendlyPieces;
+            while (possibleMoves != 0)
+            {
+                long move = 1L << Long.numberOfTrailingZeros(possibleMoves);
+                possibleMoves &= ~ move;
+                if((possibleMoves & enemyPieces) != 0)
+                {
+
+                    moves.add(MoveGeneration.encodeMove(bishopStart, move, capture));
+                }
+                else
+                {
+                    moves.add(MoveGeneration.encodeMove(bishopStart, move, quiet));
+                }
+            }
+        }
+
+        return moves;
     }
 }
