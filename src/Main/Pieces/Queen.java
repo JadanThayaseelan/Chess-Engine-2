@@ -29,7 +29,7 @@ public class Queen
             {
                 long move = 1L << Long.numberOfTrailingZeros(possibleMoves);
                 possibleMoves &= ~ move;
-                if((possibleMoves & enemyPieces) != 0)
+                if((move & enemyPieces) != 0)
                 {
 
                     moves.add(MoveGeneration.encodeMove(queenStart, move, capture));

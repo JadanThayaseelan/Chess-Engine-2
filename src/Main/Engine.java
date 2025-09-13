@@ -34,35 +34,30 @@ public class Engine
 
     public int maximise(int depth, int alpha, int beta, Game game)
     {
+
         if ( depth == 0 )
         {
             count += 1;
-            return quiesceneSearch(game, alpha, beta, 5);
+            return evaluation.evaluate(game.bitBoards, game);
+            //return quiesceneSearch(game, alpha, beta, 0);
         }
         int max = Integer.MIN_VALUE;
 
-        ArrayList<Character> moves = game.getAllMoves();
+        ArrayList<Character> moves = game.calculateAllPseudoLegalMoves();
         for (int i = 0 ; i < moves.size(); i++)
         {
             moves = orderMoves(game, moves, i);
             char currentMove = moves.get(i);
+
 
             if(!game.isMoveLegal(currentMove))
             {
                 continue;
             }
 
-            long[] bitboardsCopy = Bitboard.copy(game.bitBoards);
-            byte cannotCastleFlagsCopy = game.cannotCastleFlags;
-
             game.makeEngineMove(currentMove);
-
             int score = minimise( depth - 1, alpha, beta, game);
-
-            game.bitBoards = bitboardsCopy;
-            game.cannotCastleFlags = cannotCastleFlagsCopy;
-
-            game.turn -= 1;
+            game.undoEngineMove();
 
             if( score > max )
             {
@@ -83,11 +78,12 @@ public class Engine
         if ( depth == 0 )
         {
             count += 1;
-            return quiesceneSearch(game, alpha, beta, 5);
+            return evaluation.evaluate(game.bitBoards, game);
+           // return quiesceneSearch(game, alpha, beta, 0);
         }
         int min = Integer.MAX_VALUE;
 
-        ArrayList<Character> moves = game.getAllMoves();
+        ArrayList<Character> moves = game.calculateAllPseudoLegalMoves();
         for (int i = 0 ; i < moves.size(); i++)
         {
             moves = orderMoves(game, moves, i);
@@ -98,24 +94,10 @@ public class Engine
                 continue;
             }
 
-            long[] bitboardsCopy = Bitboard.copy(game.bitBoards);
-            byte cannotCastleFlagsCopy = game.cannotCastleFlags;
-
-
             game.makeEngineMove(currentMove);
-
-
             int score = maximise( depth - 1, alpha, beta, game);
+            game.undoEngineMove();
 
-            game.bitBoards = bitboardsCopy;
-            game.cannotCastleFlags = cannotCastleFlagsCopy;
-
-            game.whitePiecesBitboard = Bitboard.getWhitePieces(game.bitBoards);
-            game.blackPiecesBitboard = Bitboard.getBlackPieces(game.bitBoards);
-            game.allPiecesBitboard = Bitboard.getAllPieces(game.bitBoards);
-
-
-            game.turn -= 1;
 
             if( score < min )
             {
@@ -133,7 +115,10 @@ public class Engine
 
     public int quiesceneSearch(Game game, int alpha, int beta, int depth)
     {
-
+        if(depth >= 10)
+        {
+            return evaluation.evaluate(game.bitBoards, game);
+        }
         int staticEval = evaluation.evaluate(game.bitBoards, game);
         int bestValue = staticEval;
         if( bestValue >= beta )
@@ -141,45 +126,38 @@ public class Engine
         if( bestValue > alpha )
             alpha = bestValue;
 
-        if(depth == 0)
-        {
-            return bestValue;
-        }
 
-        ArrayList<Character> moves = game.getAllMoves();
+        ArrayList<Character> moves = game.calculateAllPseudoLegalMoves();
         for (int i = 0 ; i < moves.size(); i++)
         {
+
             moves = orderMoves(game, moves, i);
-            if((moves.get(i) & 0b0100) != 0)
+            if((moves.get(i) & 0b0100) == 0)
             {
-                char currentMove = moves.get(i);
-
-                if(game.isMoveLegal(currentMove))
-                {
-                    continue;
-                }
-
-                long[] bitboardsCopy = Bitboard.copy(game.bitBoards);
-                byte cannotCastleFlagsCopy = game.cannotCastleFlags;;
-
-
-                game.makeEngineMove(currentMove);
-
-
-                int score = -quiesceneSearch(game, -beta, -alpha, depth - 1);
-                game.bitBoards = bitboardsCopy;
-                game.cannotCastleFlags = cannotCastleFlagsCopy;
-
-                game.turn -= 1;
-
-                if (score >= beta)
-                    return score;
-                if (score > bestValue)
-                    bestValue = score;
-                if (score > alpha)
-                    alpha = score;
+                continue;
             }
 
+
+            char currentCapture = moves.get(i);
+
+            if(!game.isMoveLegal(currentCapture))
+            {
+                continue;
+            }
+            count += 1;
+
+
+            game.makeEngineMove(currentCapture);
+            int score = -quiesceneSearch(game, -beta, -alpha, depth + 1);
+            game.undoEngineMove();
+
+
+            if (score >= beta)
+                return score;
+            if (score > bestValue)
+                bestValue = score;
+            if (score > alpha)
+                alpha = score;
         }
 
         return bestValue;
@@ -192,15 +170,12 @@ public class Engine
 
         char bestCurrentMove = 0;
 
-        long[] bitboardsCopy;
-        byte cannotCastleFlagsCopy;
-
         int bestEval = Integer.MAX_VALUE;
         int bestIndex = -1;
 
         int depth = 1;
 
-        ArrayList<Character> moves = game.getAllMoves();
+        ArrayList<Character> moves = game.calculateAllPseudoLegalMoves();
         while (System.currentTimeMillis() < end && depth < maxDepth - 1)
         {
             for(int i = 0; i < moves.size(); i++)
@@ -211,21 +186,9 @@ public class Engine
                     continue;
                 }
 
-                bitboardsCopy = Bitboard.copy(game.bitBoards);
-                cannotCastleFlagsCopy = game.cannotCastleFlags;
-
-
                 game.makeEngineMove(currentMove);
                 int eval = maximise(depth, Integer.MIN_VALUE, Integer.MAX_VALUE, game);
-
-                game.bitBoards = bitboardsCopy;
-                game.cannotCastleFlags = cannotCastleFlagsCopy;
-
-                game.turn -= 1;
-
-                game.whitePiecesBitboard = Bitboard.getWhitePieces(game.bitBoards);
-                game.blackPiecesBitboard = Bitboard.getBlackPieces(game.bitBoards);
-                game.allPiecesBitboard = Bitboard.getAllPieces(game.bitBoards);
+                game.undoEngineMove();
 
                 if(eval < bestEval && start < end)
                 {
@@ -294,6 +257,10 @@ public class Engine
             return 0;
         }
         int pieceToMove = game.determinePieceIndexFromBitBoard(pieceToMoveBitboard);
+        if(pieceToMove == -1)
+        {
+            return 0;
+        }
 
         return mvvlvaMatrix[pieceToCapture % 6][pieceToMove % 6];
     }
@@ -303,11 +270,11 @@ public class Engine
         Engine engine = new Engine();
 
         Game game = new Game(null);
-        game.turn += 1;
+        game.turn = 1;
 
         long startTime = System.nanoTime();
 
-        engine.iterativeDeepening( 6, game);
+        engine.iterativeDeepening( 8, game);
 
         //engine.minimise(6, Integer.MIN_VALUE, Integer.MAX_VALUE, game);
         long endTime = System.nanoTime();

@@ -21,6 +21,7 @@ public class Pawn
     byte quiet = 0;
     byte doublePawnPush = 1;
     byte capture = 4;
+    byte enPassant = 5;
     byte knightPromotion = 8;
     byte bishopPromotion = 9;
     byte rookPromotion = 10;
@@ -71,16 +72,16 @@ public class Pawn
 
 
 
-    public ArrayList<Character> calculatePawnMoves(long board, long allPieces, long whitePieces, long blackPieces, int turn)
+    public ArrayList<Character> calculatePawnMoves(long board, long allPieces, long whitePieces, long blackPieces, int turn, long doublePawnPushBitboard)
     {
         if(turn % 2 == 0)
         {
-            return calculateWhitePawnMoves(board, allPieces, blackPieces);
+            return calculateWhitePawnMoves(board, allPieces, blackPieces, doublePawnPushBitboard);
         }
-        return calculateBlackPawnMoves(board, allPieces, whitePieces);
+        return calculateBlackPawnMoves(board, allPieces, whitePieces, doublePawnPushBitboard);
     }
 
-    public ArrayList<Character> calculateWhitePawnMoves(long board, long allPieces,  long blackPieces)
+    public ArrayList<Character> calculateWhitePawnMoves(long board, long allPieces,  long blackPieces, long doublePawnPushBitboard)
     {
         ArrayList<Character> moves = new ArrayList<>();
 
@@ -93,10 +94,10 @@ public class Pawn
             long startSquare = (endSquare  >> 8);
             if((endSquare & eightFileMask) != 0)
             {
+                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, queenPromotion));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, knightPromotion));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, bishopPromotion));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, rookPromotion));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, queenPromotion));
             }
             else
             {
@@ -104,9 +105,9 @@ public class Pawn
             }
         }
 
-        long moveTwoUp = board;
 
-        moveTwoUp = ((moveTwoUp & whitePawnStartingPosition) << 8) & ~allPieces;
+
+        long moveTwoUp = ((board & whitePawnStartingPosition) << 8) & ~allPieces;
         moveTwoUp = ((moveTwoUp) << 8) & ~allPieces;
         while(moveTwoUp != 0)
         {
@@ -124,14 +125,14 @@ public class Pawn
             long startSquare = endSquare >> 7;
             if((endSquare & eightFileMask) != 0)
             {
+                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture)));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (knightPromotion | capture)));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (bishopPromotion | capture)));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (rookPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture)));
             }
             else
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, quiet));
+                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, capture));
             }
         }
 
@@ -143,21 +144,34 @@ public class Pawn
             long startSquare = endSquare >> 9;
             if((endSquare & eightFileMask) != 0)
             {
+                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture)));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (knightPromotion | capture)));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (bishopPromotion | capture)));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (rookPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture)));
             }
             else
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, quiet));
+                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, capture));
             }
         }
+
+        if(doublePawnPushBitboard != 0 && ((doublePawnPushBitboard << 8) & allPieces) == 0)
+        {
+            if(((doublePawnPushBitboard << 1) & board & notHFileMask) != 0)
+            {
+                moves.add(MoveGeneration.encodeMove(doublePawnPushBitboard << 1, doublePawnPushBitboard << 8, enPassant));
+            }
+            if(((doublePawnPushBitboard >> 1) & board & notAFileMask) != 0)
+            {
+                moves.add(MoveGeneration.encodeMove(doublePawnPushBitboard >> 1, doublePawnPushBitboard << 8, enPassant));
+            }
+        }
+
 
         return moves;
     }
 
-    public ArrayList<Character> calculateBlackPawnMoves(long board, long allPieces, long whitePieces)
+    public ArrayList<Character> calculateBlackPawnMoves(long board, long allPieces, long whitePieces, long doublePawnPushBitboard)
     {
         ArrayList<Character> moves = new ArrayList<>();
 
@@ -170,10 +184,10 @@ public class Pawn
             long startSquare = (endSquare << 8);
             if((endSquare & oneFileMask) != 0)
             {
+                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, queenPromotion));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, knightPromotion));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, bishopPromotion));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, rookPromotion));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, queenPromotion));
             }
             else
             {
@@ -201,14 +215,14 @@ public class Pawn
             long startSquare = endSquare << 9;
             if((endSquare & oneFileMask) != 0)
             {
+                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture)));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (knightPromotion | capture)));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (bishopPromotion | capture)));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (rookPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture)));
             }
             else
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, quiet));
+                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, capture));
             }
         }
 
@@ -220,14 +234,27 @@ public class Pawn
             long startSquare = endSquare << 7;
             if((endSquare & oneFileMask) != 0)
             {
+                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture)));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (knightPromotion | capture)));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (bishopPromotion | capture)));
                 moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (rookPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture)));
             }
             else
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, quiet));
+                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, capture));
+            }
+        }
+
+
+        if(doublePawnPushBitboard != 0 && ((doublePawnPushBitboard >> 8) & allPieces) == 0)
+        {
+            if(((doublePawnPushBitboard << 1) & board & notHFileMask) != 0)
+            {
+                moves.add(MoveGeneration.encodeMove(doublePawnPushBitboard << 1, doublePawnPushBitboard >> 8, enPassant));
+            }
+            if(((doublePawnPushBitboard >> 1) & board & notAFileMask) != 0)
+            {
+                moves.add(MoveGeneration.encodeMove(doublePawnPushBitboard >> 1, doublePawnPushBitboard >> 8, enPassant));
             }
         }
 
@@ -243,4 +270,6 @@ public class Pawn
 
         return (board >> 9 & (notAFileMask)) | (board >> 7 & (notHFileMask));
     }
+
+
 }

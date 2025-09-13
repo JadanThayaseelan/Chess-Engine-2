@@ -264,7 +264,7 @@ public class RookMagic
             {
                 long move = 1L << Long.numberOfTrailingZeros(possibleMoves);
                 possibleMoves &= ~ move;
-                if((possibleMoves & enemyPieces) != 0)
+                if((move & enemyPieces) != 0)
                 {
 
                     moves.add(MoveGeneration.encodeMove(rookStart, move, capture));

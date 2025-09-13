@@ -42,6 +42,7 @@ public class Game
     public King king = new King();
 
     public int turn = 0;
+    public int ply = 0;
 
     public byte cannotCastleFlags = 0b0000;
 
@@ -49,11 +50,15 @@ public class Game
     public long blackPiecesBitboard;
     public long allPiecesBitboard;
 
+    public long doublePawnPushBitboard;
+
     private byte quiet = 0;
     private byte capture = 4;
     private byte kingCastle = 2;
     private byte queenCastle = 3;
 
+    int maxDepth = 256;
+    UndoState[] undoStack = new UndoState[maxDepth];
 
     public Game(String[][] stringBoard)
     {
@@ -69,17 +74,22 @@ public class Game
                     {"R", "N", "B", "Q", "K", "B", "N", "R"}
             };
 //            stringBoard = new String[][]{
-//                    {"r", " ", " ", " ", "k", " ", " ", "r"},
+//                    {"r", " ", "b", "q", "k", "b", "n", "r"},
+//                    {"p", "p", "p", "p", "p", "p", "p", "p"},
 //                    {" ", " ", " ", " ", " ", " ", " ", " "},
 //                    {" ", " ", " ", " ", " ", " ", " ", " "},
-//                    {" ", " ", " ", " ", " ", " ", " ", " "},
-//                    {" ", " ", " ", " ", " ", " ", " ", " "},
-//                    {" ", " ", " ", " ", " ", " ", " ", " "},
-//                    {" ", " ", " ", " ", " ", " ", " ", " "},
-//                    {" ", " ", " ", " ", "K", " ", " ", " "},
+//                    {" ", " ", " ", "n", " ", " ", " ", " "},
+//                    {"P", " ", " ", " ", "P", " ", " ", " "},
+//                    {" ", "P", "P", "P", " ", "P", "P", "P"},
+//                    {"R", "N", "B", "Q", "K", "B", "N", "R"}
 //            };
 
 
+        }
+
+        for(int i = 0; i < maxDepth; i++)
+        {
+            undoStack[i] = new UndoState();
         }
 
         bitBoards = Bitboard.convertStringBoardToBitBoards(stringBoard);
@@ -108,107 +118,23 @@ public class Game
         return whitePiecesBitboard;
     }
 
-    public int determineKingSquare()
-    {
-        if(turn % 2 == 0)
-        {
-            return Long.numberOfLeadingZeros(bitBoards[5]);
-        }
-        return Long.numberOfLeadingZeros(bitBoards[11]);
-    }
-
-
-    public boolean isFriendly(long selectedPieceBitBoard)
-    {
-        return (getFriendlyPieces() & selectedPieceBitBoard) != 0;
-    }
-
-    public long getAllPossibleMoves()
-    {
-        if(turn % 2 == 0)
-        {
-            return getAllPossibleWhiteMoves();
-        }
-        return getAllPossibleBlackMoves();
-    }
-
-    public long getAllPossibleWhiteMoves()
-    {
-        long allMoves = 0L;
-        for(int i = 0 ; i < 6; i++)
-        {
-            if(bitBoards[i] == 0)
-            {
-                continue;
-            }
-            allMoves |= calculatePossibleMoves(bitBoards[i]);
-        }
-
-        return allMoves;
-    }
-
-    public long getAllPossibleBlackMoves()
-    {
-        long allMoves = 0L;
-        for(int i = 6 ; i < 12; i++)
-        {
-            if(bitBoards[i] == 0)
-            {
-                continue;
-            }
-            allMoves |= calculatePossibleMoves(bitBoards[i]);
-        }
-
-        return allMoves;
-    }
-
-    public long getPossibleMoves(long selectedPieceBitBoard)
-    {
-        if(!isFriendly(selectedPieceBitBoard))
-        {
-            return 0L;
-        }
-
-        if(isInCheck())
-        {
-            if((selectedPieceBitBoard & (bitBoards[5] | bitBoards[11])) != 0)
-            {
-                return calculatePossibleMoves(selectedPieceBitBoard);
-            }
-
-            return calculatePossibleMoves(selectedPieceBitBoard) & getMovesToStopCheck();
-        }
-
-
-        return calculatePossibleMoves(selectedPieceBitBoard);
-    }
-
-    public long getPseudoLegalMoves(long selectedPieceBitBoard)
-    {
-        if(!isFriendly(selectedPieceBitBoard))
-        {
-            return 0L;
-        }
-        return calculatePseudoLegalMoves(selectedPieceBitBoard);
-    }
-
     public ArrayList<Character> calculateAllPseudoLegalMoves()
     {
         ArrayList<Character> allMoves = new ArrayList<>();
         if(turn % 2 == 0)
         {
-            allMoves.addAll(pawn.calculateWhitePawnMoves(bitBoards[0], allPiecesBitboard, blackPiecesBitboard));
+            allMoves.addAll(pawn.calculateWhitePawnMoves(bitBoards[0], allPiecesBitboard, blackPiecesBitboard, doublePawnPushBitboard));
             allMoves.addAll(knight.calculateKnightMoves(bitBoards[1], getFriendlyPieces(), getEnemyPieces()));
-            allMoves.addAll(bishopMagic.calculateBishopMoves(bitBoards[2], allPiecesBitboard, getEnemyPieces(), getFriendlyPieces()));
+            allMoves.addAll(bishopMagic.calculateBishopMoves(bitBoards[2], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
             allMoves.addAll(rookMagic.calculateRookMoves(bitBoards[3], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
             allMoves.addAll(queen.calculateQueenMoves(bitBoards[4], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
             allMoves.addAll(calculateKingMoves(bitBoards[5], getEnemyPieces()));
         }
         else
         {
-            allMoves.addAll(pawn.calculateBlackPawnMoves(bitBoards[6], allPiecesBitboard, whitePiecesBitboard));
+            allMoves.addAll(pawn.calculateBlackPawnMoves(bitBoards[6], allPiecesBitboard, whitePiecesBitboard, doublePawnPushBitboard));
             allMoves.addAll(knight.calculateKnightMoves(bitBoards[7], getFriendlyPieces(), getEnemyPieces()));
-            allMoves.addAll(bishopMagic.calculateBishopMoves(bitBoards[8], allPiecesBitboard, getEnemyPieces(), getFriendlyPieces()));
+            allMoves.addAll(bishopMagic.calculateBishopMoves(bitBoards[8], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
             allMoves.addAll(rookMagic.calculateRookMoves(bitBoards[9], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
             allMoves.addAll(queen.calculateQueenMoves(bitBoards[10], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
             allMoves.addAll(calculateKingMoves(bitBoards[11], getEnemyPieces()));
@@ -219,303 +145,257 @@ public class Game
 
     public boolean isMoveLegal(char move)
     {
-        long[] bitboardsCopy = Bitboard.copy(bitBoards);
-        byte cannotCastleFlagsCopy = cannotCastleFlags;
-
         makeEngineMove(move);
-
         turn -= 1;
         boolean isCheck = isInCheck();
-
-        bitBoards = bitboardsCopy;
-        cannotCastleFlags = cannotCastleFlagsCopy;
-        whitePiecesBitboard = Bitboard.getWhitePieces(bitBoards);
-        blackPiecesBitboard = Bitboard.getBlackPieces(bitBoards);
-        allPiecesBitboard = Bitboard.getAllPieces(bitBoards);
+        turn += 1;
+        undoEngineMove();
 
         return !isCheck;
-
-    }
-
-    public long calculatePseudoLegalMoves(long selectedPieceBitBoard)
-    {
-        long possibleMoves = 0L;
-
-        if((selectedPieceBitBoard & (bitBoards[0] | bitBoards[6])) != 0)
-        {
-            possibleMoves = pawn.possibleMoves(selectedPieceBitBoard, allPiecesBitboard, whitePiecesBitboard, blackPiecesBitboard, turn);
-        }
-        else if ((selectedPieceBitBoard & (bitBoards[1] | bitBoards[7])) != 0)
-        {
-            possibleMoves = knight.possibleMoves(selectedPieceBitBoard, getFriendlyPieces());
-        }
-        else if ((selectedPieceBitBoard & (bitBoards[2] | bitBoards[8])) != 0)
-        {
-            possibleMoves = bishopMagic.possibleMoves(selectedPieceBitBoard, allPiecesBitboard, getFriendlyPieces());
-        }
-        else if ((selectedPieceBitBoard & (bitBoards[3] | bitBoards[9])) != 0)
-        {
-            possibleMoves = rookMagic.possibleMoves(selectedPieceBitBoard, allPiecesBitboard, getFriendlyPieces());
-        }
-        else if ((selectedPieceBitBoard & (bitBoards[4] | bitBoards[10])) != 0)
-        {
-            possibleMoves = queen.possibleMoves(selectedPieceBitBoard, allPiecesBitboard, getFriendlyPieces());
-        }
-        else if ((selectedPieceBitBoard & (bitBoards[5] | bitBoards[11])) != 0)
-        {
-            possibleMoves = possibleKingMoves(selectedPieceBitBoard);
-        }
-        else
-        {
-            throw new RuntimeException("Invalid move starting piece");
-        }
-
-        return possibleMoves;
-    }
-
-    public long calculatePossibleMoves(long selectedPieceBitBoard)
-    {
-        long possibleMoves = 0L;
-
-        if((selectedPieceBitBoard & (bitBoards[0] | bitBoards[6])) != 0)
-        {
-            possibleMoves = pawn.possibleMoves(selectedPieceBitBoard, allPiecesBitboard, whitePiecesBitboard, blackPiecesBitboard, turn);
-        }
-        else if ((selectedPieceBitBoard & (bitBoards[1] | bitBoards[7])) != 0)
-        {
-            possibleMoves = knight.possibleMoves(selectedPieceBitBoard, getFriendlyPieces());
-        }
-        else if ((selectedPieceBitBoard & (bitBoards[2] | bitBoards[8])) != 0)
-        {
-            possibleMoves = bishopMagic.possibleMoves(selectedPieceBitBoard, allPiecesBitboard, getFriendlyPieces());
-        }
-        else if ((selectedPieceBitBoard & (bitBoards[3] | bitBoards[9])) != 0)
-        {
-            possibleMoves = rookMagic.possibleMoves(selectedPieceBitBoard, allPiecesBitboard, getFriendlyPieces());
-        }
-        else if ((selectedPieceBitBoard & (bitBoards[4] | bitBoards[10])) != 0)
-        {
-            possibleMoves = queen.possibleMoves(selectedPieceBitBoard, allPiecesBitboard, getFriendlyPieces());
-        }
-        else if ((selectedPieceBitBoard & (bitBoards[5] | bitBoards[11])) != 0)
-        {
-            possibleMoves = possibleKingMoves(selectedPieceBitBoard) & ~getAllPossibleEnemyAttacks();
-        }
-        else
-        {
-            throw new RuntimeException("Invalid move starting piece");
-        }
-
-
-        if ((getAllPinnedPiecesValidMoves() & selectedPieceBitBoard) != 0) {
-            return possibleMoves & getAllPinnedPiecesValidMoves();
-        }
-
-        return possibleMoves;
     }
 
 
-    public char convertTo16BitMove(long selectedPieceBitBoard, long moveBitBoard)
+    public ArrayList<Character> calculatePseudoLegalMoves(long selectedPieceBitboard)
     {
-        char startingSquare = (char) Long.numberOfLeadingZeros(selectedPieceBitBoard);
-        char endingSquare = (char) Long.numberOfLeadingZeros(moveBitBoard);
-        char promotion = 0;
-        char capture = 0;
-        char special1 = 0;
-        char special0 = 0;
-
-
-        if(isMoveDoublePawnPush(selectedPieceBitBoard, moveBitBoard))
+        if((selectedPieceBitboard & bitBoards[0]) != 0)
         {
-            special0 = 1;
+            return pawn.calculateWhitePawnMoves(selectedPieceBitboard, allPiecesBitboard, blackPiecesBitboard, doublePawnPushBitboard);
+        }
+        else if((selectedPieceBitboard & bitBoards[6]) != 0)
+        {
+            return pawn.calculateBlackPawnMoves(selectedPieceBitboard, allPiecesBitboard, whitePiecesBitboard, doublePawnPushBitboard);
         }
 
-        if(isMoveCastle(selectedPieceBitBoard, moveBitBoard, true))
+        else if((selectedPieceBitboard & (bitBoards[1] | bitBoards[7])) != 0)
         {
-            special1 = 1;
+            return knight.calculateKnightMoves(selectedPieceBitboard, getFriendlyPieces(), getEnemyPieces());
         }
 
-        if(isMoveCastle(selectedPieceBitBoard, moveBitBoard, false))
+        else if((selectedPieceBitboard & (bitBoards[2] | bitBoards[8])) != 0)
         {
-            special1 = 1;
-            special0 = 1;
+            return bishopMagic.calculateBishopMoves(selectedPieceBitboard, allPiecesBitboard, getFriendlyPieces(),  getEnemyPieces());
         }
 
-        if((moveBitBoard & allPiecesBitboard) != 0)
+        else if((selectedPieceBitboard & (bitBoards[3] | bitBoards[9])) != 0)
         {
-            capture = 1;
+            return rookMagic.calculateRookMoves(selectedPieceBitboard, allPiecesBitboard, getFriendlyPieces(), getEnemyPieces());
         }
 
-        if (isMovePromotion(selectedPieceBitBoard, moveBitBoard))
+        else if((selectedPieceBitboard & (bitBoards[4] | bitBoards[10])) != 0)
         {
-            promotion = 1;
-            special0 = 1;
-            special1 = 1;
+            return queen.calculateQueenMoves(selectedPieceBitboard, allPiecesBitboard, getFriendlyPieces(), getEnemyPieces());
         }
 
-        return (char) (startingSquare << 10 | endingSquare << 4 | promotion << 3 | capture << 2 | special0 << 1 | special1);
+        else if((selectedPieceBitboard & (bitBoards[5] | bitBoards[11])) != 0)
+        {
+            return calculateKingMoves(selectedPieceBitboard, getEnemyPieces());
+        }
+
+        return null;
     }
 
-    public boolean isMoveDoublePawnPush(long selectedPieceBitBoard, long moveBitBoard)
+    public ArrayList<Character> calculateLegalMoves(long selectedPieceBitboard)
     {
-        if((selectedPieceBitBoard & (bitBoards[0] | bitBoards[6])) == 0)
+        ArrayList<Character> legalMoves = new ArrayList<>();
+
+        ArrayList<Character> pseudoLegalMoves = calculatePseudoLegalMoves(selectedPieceBitboard);
+        if(pseudoLegalMoves == null)
         {
-            return false;
+            return null;
         }
 
-        return (selectedPieceBitBoard << 16 == moveBitBoard) || (selectedPieceBitBoard >> 16 == moveBitBoard);
+        for(char move : pseudoLegalMoves)
+        {
+            if(isMoveLegal(move))
+            {
+                legalMoves.add(move);
+            }
+        }
+
+        return legalMoves;
     }
 
-    public boolean isMoveCastle(long selectedPieceBitBoard, long moveBitBoard, boolean kingside)
+    public char getValidMove(char moveToValidate)
     {
-        //Queen side castling
-        long whiteKingStartingPosition = 0x0000000000000008L;
-        long whiteKingEndingPosition = 0x0000000000000020L;
-
-        long blackKingStartingPosition = 0x0800000000000000L;
-        long blackKingEndingPosition = 0x2000000000000000L;
-
-        //King side castling
-        if(kingside)
+        ArrayList<Character> legalMoves = calculateLegalMoves(1L << 63 - MoveGeneration.getStartSquare(moveToValidate));
+        if(legalMoves == null)
         {
-            whiteKingEndingPosition = 0x0000000000000002L;
-            blackKingEndingPosition = 0x0200000000000000L;
+            return 0;
         }
 
-        if((selectedPieceBitBoard & (bitBoards[5] | bitBoards[11])) == 0)
+        for (char move : legalMoves)
         {
-            return false;
+            if (MoveGeneration.getEndSquare(move) == MoveGeneration.getEndSquare(moveToValidate))
+            {
+                return move;
+            }
         }
-
-        return ((selectedPieceBitBoard & whiteKingStartingPosition) != 0 &&  (moveBitBoard & whiteKingEndingPosition) != 0) ||
-                ((selectedPieceBitBoard & blackKingStartingPosition) != 0 &&  (moveBitBoard & blackKingEndingPosition) != 0);
+        return 0;
     }
 
-    public boolean isMovePromotion(long selectedPieceBitBoard, long moveBitBoard)
+    public long convertEncodedMovesToBitboard(ArrayList<Character> moves)
     {
-        if((selectedPieceBitBoard & (bitBoards[0] | bitBoards[6])) == 0)
+        long combinedBitboard = 0L;
+        for(char move : moves)
         {
-            return false;
+            int endSquare = MoveGeneration.getEndSquare(move);
+            long endBitboard = 1L << 63 - endSquare;
+            combinedBitboard |= endBitboard;
         }
-
-        long whitePromotionSquaresMask = 0xFF00000000000000L;
-        long blackPromotionSquaresMask = 0x00000000000000FFL;
-
-        return (moveBitBoard & (whitePromotionSquaresMask | blackPromotionSquaresMask)) != 0;
-    }
-
-
-
-
-
-    public ArrayList<Character> getAllMoves()
-    {
-        return calculateAllPseudoLegalMoves();
-    }
-
-//    public void makeRandomMove()
-//    {
-//        ArrayList<Long[]> allMoves = getAllMoves();
-//        int index = (int)(Math.random() * allMoves.size());
-//
-//        Long[] randomMove = allMoves.get(index);
-//        makeMove(randomMove[0], randomMove[1]);
-//    }
-
-
-    public boolean isValidMove(long selectedPieceBitBoard, long moveBitBoard)
-    {
-        long possibleMovesBitBoard = getPossibleMoves(selectedPieceBitBoard);
-
-        return (selectedPieceBitBoard & getFriendlyPieces()) != 0L && (moveBitBoard & possibleMovesBitBoard) != 0L;
-    }
-
-    public void makeMove(long pieceToMoveBitBoard, long moveBitBoard)
-    {
-        //Checks if move made affects rooks or king
-        updateCastlingRights(pieceToMoveBitBoard);
-
-        if(isMoveShortCastle(pieceToMoveBitBoard, moveBitBoard))
-        {
-            shortCastle();
-            turn += 1;
-            return;
-        }
-        else if(isMoveLongCastle(pieceToMoveBitBoard, moveBitBoard))
-        {
-            longCastle();
-            turn += 1;
-            return;
-        }
-
-        int pieceIndex = determinePieceIndexFromBitBoard(pieceToMoveBitBoard);
-        int capturedPieceIndex = determinePieceIndexFromBitBoard(moveBitBoard);
-
-        bitBoards[pieceIndex] = (bitBoards[pieceIndex] & ~pieceToMoveBitBoard) | moveBitBoard;
-
-        if(capturedPieceIndex != -1)
-        {
-            updateEnemyPiecesBitBoard(moveBitBoard);
-        }
-
-
-        if(isPawnOnPromotionSquare())
-        {
-            promote((byte)0b1011);
-        }
-
-        whitePiecesBitboard = Bitboard.getWhitePieces(bitBoards);
-        blackPiecesBitboard = Bitboard.getBlackPieces(bitBoards);
-        allPiecesBitboard = Bitboard.getAllPieces(bitBoards);
-        turn += 1;
+        return combinedBitboard;
     }
 
     public void makeEngineMove(char move)
     {
-
         int startSquare = MoveGeneration.getStartSquare(move);
         int endSquare = MoveGeneration.getEndSquare(move);
 
-        long pieceToMoveBitBoard = 1L << 63 - startSquare;
-        long moveBitBoard = 1L << 63 - endSquare;
+        long pieceToMoveBitBoard = 1L << (63 - startSquare);
+        long moveBitBoard = 1L << (63 - endSquare);
 
-        updateCastlingRights(pieceToMoveBitBoard);
+        int pieceIndex = determineFriendlyPieceIndex(pieceToMoveBitBoard);
+        int capturedPieceIndex = determineEnemyPieceIndex(moveBitBoard);
 
-        if((move & 0b0010) != 0)
+        byte flags = (byte) MoveGeneration.getFlags(move);
+
+        undoStack[ply].copyFrom(move, pieceIndex,  capturedPieceIndex, cannotCastleFlags, doublePawnPushBitboard);
+        updateCastlingRights(pieceToMoveBitBoard, moveBitBoard, capturedPieceIndex);
+
+        switch (flags)
         {
-            shortCastle();
-            turn += 1;
-            return;
-        }
-        else if((move & 0b0011) != 0)
-        {
-            longCastle();
-            turn += 1;
-            return;
-        }
-
-        int pieceIndex = determinePieceIndexFromBitBoard(pieceToMoveBitBoard);
-        int capturedPieceIndex = determinePieceIndexFromBitBoard(moveBitBoard);
-
-        bitBoards[pieceIndex] = (bitBoards[pieceIndex] & ~pieceToMoveBitBoard) | moveBitBoard;
-
-        if(capturedPieceIndex != -1)
-        {
-            updateEnemyPiecesBitBoard(moveBitBoard);
+            case 0b0010: shortCastle(); break;
+            case 0b0011: longCastle(); break;
+            case (0b0101):
+            {
+                enPassant(pieceToMoveBitBoard, moveBitBoard);
+                break;
+            }
         }
 
-        if((move & 0b0100) != 0)
+        //Moves targeted piece and removes enemy captured piece if there is one
+        bitBoards[pieceIndex] &= ~pieceToMoveBitBoard;
+        bitBoards[pieceIndex] |= moveBitBoard;
+        if((flags & 0b0100) != 0 && (flags != 0b0101))
         {
-            promote((byte) (move & 0b1111));
+            if(capturedPieceIndex != -1)
+            {
+                bitBoards[capturedPieceIndex] &= ~moveBitBoard;
+            }
+            else
+            {
+                System.out.println(startSquare);
+                System.out.println(endSquare);
+                throw new IllegalArgumentException("Illegal move attempted");
+            }
+        }
+
+        //promotion
+        if((flags & 0b1000) != 0)
+        {
+            promote(flags);
+        }
+
+        //Double pawn push
+        if(flags == 0b0001)
+        {
+            doublePawnPushBitboard = moveBitBoard;
+        }
+        else
+        {
+            doublePawnPushBitboard = 0;
         }
 
         whitePiecesBitboard = Bitboard.getWhitePieces(bitBoards);
         blackPiecesBitboard = Bitboard.getBlackPieces(bitBoards);
         allPiecesBitboard = Bitboard.getAllPieces(bitBoards);
+
         turn += 1;
+        ply += 1;
 
     }
 
+    public void undoEngineMove()
+    {
+        turn -= 1;
+        ply -= 1;
+        UndoState undoState = undoStack[ply];
+
+        int startSquare = MoveGeneration.getStartSquare(undoState.move);
+        int endSquare = MoveGeneration.getEndSquare(undoState.move);
+
+        long pieceToMoveBitBoard = 1L << (63 - startSquare);
+        long moveBitBoard = 1L << (63 - endSquare);
+
+        byte flags = (byte) (undoState.move & 0b1111);
+
+        switch (flags)
+        {
+            case 0b0010: undoShortCastle(); break;
+            case 0b0011: undoLongCastle(); break;
+            case 0b0101: undoEnPassant(pieceToMoveBitBoard, moveBitBoard); break;
+        }
+
+        //undo promotion
+        if((flags & 0b1000) != 0)
+        {
+            undoPromote(flags, undoState.move);
+        }
+
+
+        bitBoards[undoState.movedPiece] &= ~moveBitBoard;
+        bitBoards[undoState.movedPiece] |= pieceToMoveBitBoard;
+        if((flags & 0b0100) != 0 && (flags != 0b0101))
+        {
+            bitBoards[undoState.capturedPiece] |= (moveBitBoard);
+        }
+
+        doublePawnPushBitboard = undoState.doublePawnPushSquare;
+        cannotCastleFlags = undoState.cannotCastleFlags;
+
+        whitePiecesBitboard = Bitboard.getWhitePieces(bitBoards);
+        blackPiecesBitboard = Bitboard.getBlackPieces(bitBoards);
+        allPiecesBitboard = Bitboard.getAllPieces(bitBoards);
+    }
+
+    public int determineFriendlyPieceIndex(long selectedPieceBitboard)
+    {
+        int start = 0;
+        int end = 5;
+        if(turn % 2 != 0)
+        {
+            start = 6;
+            end = 11;
+        }
+        for(int i = start; i <= end; i++)
+        {
+            if((bitBoards[i] & selectedPieceBitboard) != 0)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public int determineEnemyPieceIndex(long selectedPieceBitboard)
+    {
+        int start = 6;
+        int end = 11;
+        if(turn % 2 != 0)
+        {
+            start = 0;
+            end = 5;
+        }
+        for(int i = start; i <= end; i++)
+        {
+            if((bitBoards[i] & selectedPieceBitboard) != 0)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
 
     public boolean hasRookMovedWithoutCastling(long pieceBoard, long rookStartingPosition)
     {
@@ -528,7 +408,7 @@ public class Game
         return determinePieceIndexFromBitBoard(pieceBoard) == (rook) && (pieceBoard & rookStartingPosition) != 0;
     }
 
-    public boolean hasKingMovedWithoutCastling(long pieceBoard, long kingStartingPosition)
+    public boolean hasKingMovedWithoutCastling(long pieceBoard)
     {
         int king = 5;
         if(turn % 2 != 0)
@@ -536,61 +416,47 @@ public class Game
             king = 11;
         }
 
-        return determinePieceIndexFromBitBoard(pieceBoard) == (king) && (pieceBoard & kingStartingPosition) != 0;
+        return determinePieceIndexFromBitBoard(pieceBoard) == (king);
     }
 
-    public void updateCastlingRights(long pieceToMoveBitBoard)
-    {
-        if(turn % 2 == 0)
+    public void updateCastlingRights(long pieceToMoveBitBoard, long moveBitboard, int capturedPieceIndex) {
+        if (turn % 2 == 0)
         {
-            if(((cannotCastleFlags & 0b1100) == 0))
-            {
-                if(hasKingMovedWithoutCastling(pieceToMoveBitBoard, 0x0000000000000008L))
-                {
-                    cannotCastleFlags |= 0b1100;
-                }
+            if (determinePieceIndexFromBitBoard(pieceToMoveBitBoard) == 5) {
+                cannotCastleFlags |= 0b1100;
             }
-
-            else if((cannotCastleFlags & (0b1000)) == 0 )
-            {
-                 if(hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x0000000000000001L))
-                 {
-                     cannotCastleFlags |= 0b1000;
-                 }
+            // White rooks moved
+            if ((pieceToMoveBitBoard & 0x0000000000000001L) != 0) { // a1
+                cannotCastleFlags |= 0b1000;
             }
-
-            else if((cannotCastleFlags & (0b0100)) == 0 )
-            {
-                if(hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x0000000000000080L))
-                {
-                    cannotCastleFlags |= 0b0100;
-                }
+            if ((pieceToMoveBitBoard & 0x0000000000000080L) != 0) { // h1
+                cannotCastleFlags |= 0b0100;
             }
-        }
-        else
+            // White rooks captured
+            if (capturedPieceIndex == 3 && (moveBitboard & 0x0000000000000001L) != 0) { // rook on a1
+                cannotCastleFlags |= 0b1000;
+            }
+            if (capturedPieceIndex == 3 && (moveBitboard & 0x0000000000000080L) != 0) { // rook on h1
+                cannotCastleFlags |= 0b0100;
+            }
+        } else
         {
-            if(((cannotCastleFlags & 0b0011) == 0))
-            {
-                if(hasKingMovedWithoutCastling(pieceToMoveBitBoard, 0x0800000000000000L))
-                {
-                    cannotCastleFlags |= 0b1100;
-                }
+            if (determinePieceIndexFromBitBoard(pieceToMoveBitBoard) == 11) {
+                cannotCastleFlags |= 0b0011;
             }
-
-            if(((cannotCastleFlags & 0b0010) == 0))
-            {
-                if(hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x0100000000000000L))
-                {
-                    cannotCastleFlags |= 0b0010;
-                }
+            // Black rooks moved
+            if ((pieceToMoveBitBoard & 0x0100000000000000L) != 0) { // a8
+                cannotCastleFlags |= 0b0010;
             }
-
-            if (((cannotCastleFlags & 0b0001) == 0))
-            {
-                if(hasRookMovedWithoutCastling(pieceToMoveBitBoard, 0x8000000000000000L))
-                {
-                    cannotCastleFlags |= 0b0001;
-                }
+            if ((pieceToMoveBitBoard & 0x8000000000000000L) != 0) { // h8
+                cannotCastleFlags |= 0b0001;
+            }
+            // Black rooks captured
+            if (capturedPieceIndex == 9 && (moveBitboard & 0x0100000000000000L) != 0) { // rook on a8
+                cannotCastleFlags |= 0b0010;
+            }
+            if (capturedPieceIndex == 9 && (moveBitboard & 0x8000000000000000L) != 0) { // rook on h8
+                cannotCastleFlags |= 0b0001;
             }
         }
     }
@@ -624,7 +490,7 @@ public class Game
                   return i;
             }
         }
-        
+
         return -1;
     }
 
@@ -643,43 +509,11 @@ public class Game
 
 
 
-    public long possibleKingMoves(long bitBoard)
-    {
-        long shortCastle = 0;
-
-        if (canShortCastle())
-        {
-            if(turn % 2 == 0)
-            {
-                shortCastle = 0x0000000000000002L;
-            }
-            else
-            {
-                shortCastle = 0x0200000000000000L;
-            }
-        }
-
-        long longCastle = 0;
-        if(canLongCastle())
-        {
-            if(turn % 2 == 0)
-            {
-                longCastle = 0x0000000000000020L;
-            }
-            else
-            {
-                longCastle = 0x2000000000000000L;
-            }
-        }
-
-        return (king.getKingAttack(bitBoard) | shortCastle | longCastle) & ~getFriendlyPieces();
-    }
-
     public ArrayList<Character> calculateKingMoves(long board, long enemyPieces)
     {
         ArrayList<Character> moves = new ArrayList<>();
 
-        long possibleMoves = king.getKingAttack(board) & ~ getFriendlyPieces();
+        long possibleMoves = king.getKingAttack(board) & ~getFriendlyPieces() & ~getAllPossibleEnemyAttacks();
         while(possibleMoves != 0)
         {
             long move = 1L << Long.numberOfTrailingZeros(possibleMoves);
@@ -721,14 +555,12 @@ public class Game
             {
                 longCastle = 0x2000000000000000L;
             }
-            moves.add(MoveGeneration.encodeMove(board, longCastle, kingCastle));
+            moves.add(MoveGeneration.encodeMove(board, longCastle, queenCastle));
         }
-
 
 
         return moves;
     }
-
 
 
     public long getAllPossibleEnemyAttacks()
@@ -736,7 +568,7 @@ public class Game
         if(turn % 2 == 0)
         {
             return  pawn.getPawnAttacks(bitBoards[6], turn + 1)
-                    | knight.getKnightAttack(bitBoards[7])
+                    | knight.getKnightAttacks(bitBoards[7])
                     | bishopMagic.getAllBishopAttacks(bitBoards[8], allPiecesBitboard & ~bitBoards[5])
                     | rookMagic.getAllRookAttacks(bitBoards[9], allPiecesBitboard  & ~bitBoards[5])
                     | queen.getAllQueenAttacks(bitBoards[10], allPiecesBitboard & ~bitBoards[5])
@@ -744,7 +576,7 @@ public class Game
         }
 
         return pawn.getPawnAttacks(bitBoards[0], turn + 1)
-                | knight.getKnightAttack(bitBoards[1])
+                | knight.getKnightAttacks(bitBoards[1])
                 | bishopMagic.getAllBishopAttacks(bitBoards[2], allPiecesBitboard & ~bitBoards[11])
                 | rookMagic.getAllRookAttacks(bitBoards[3], allPiecesBitboard & ~bitBoards[11])
                 | queen.getAllQueenAttacks(bitBoards[4], allPiecesBitboard & ~bitBoards[11])
@@ -755,224 +587,9 @@ public class Game
     {
         if(turn % 2 == 0)
         {
-            return (bitBoards[5] & getAllPossibleEnemyAttacks()) != 0;
+            return ((bitBoards[5] & getAllPossibleEnemyAttacks()) != 0);
         }
-        return (bitBoards[11] & getAllPossibleEnemyAttacks()) != 0;
-    }
-
-    public boolean isInCheckmate()
-    {
-        return getAllPossibleMoves() == 0;
-    }
-
-    public boolean isWhiteInCheckmate()
-    {
-        return getAllPossibleWhiteMoves() == 0;
-    }
-
-    public boolean isBlackInCheckmate()
-    {
-        return getAllPossibleBlackMoves() == 0;
-    }
-
-
-
-    public long getMovesToStopCheck()
-    {
-        int kingSquare = determineKingSquare();
-        int[] axialPieces =  new int[]{9, 10};
-        int[] diagonalPieces = new int[]{8, 10};
-        int knightPiece = 7;
-        int pawnPiece = 6;
-
-        int[][] axialDirections = {{-1, 0}, {1, 0}, {0, 1}, {0, -1}};
-        int[][] diagonalDirections = {{-1, -1}, {1, 1}, {1, -1}, {-1, 1}};
-        int[][] knightDirections = {{1, 2}, {-1, 2}, {-1, -2}, {1, -2}, {2, 1}, {-2, -1}, {-2, 1}, {2, -1}};
-        int[][] pawnDirections = {{-1, -1}, {-1, 1}};
-
-        if(turn % 2 != 0)
-        {
-            axialPieces =  new int[]{3, 4};
-            diagonalPieces = new int[]{2, 4};
-            knightPiece = 1;
-            pawnPiece = 0;
-            
-            pawnDirections = new int[][]{{1, -1}, {1, 1}};
-        }
-
-        long moves = 0L;
-
-
-        for(int[] direction : axialDirections)
-        {
-            moves |= getMovesToStopSlidingCheck(kingSquare, direction, axialPieces);
-        }
-
-        for(int[] direction : diagonalDirections)
-        {
-            moves |= getMovesToStopSlidingCheck(kingSquare, direction, diagonalPieces);
-        }
-
-        for(int[] direction : knightDirections)
-        {
-            moves |= getMovesToStopNonSlidingCheck(kingSquare, direction, knightPiece);
-        }
-        
-        for(int[] direction : pawnDirections)
-        {
-            moves |= getMovesToStopNonSlidingCheck(kingSquare, direction, pawnPiece);
-        }
-
-        //If more than 1 check
-        if(Long.bitCount(moves & getEnemyPieces()) > 1)
-        {
-            return 0L;
-        }
-
-        return moves;
-    }
-
-    public long getMovesToStopSlidingCheck(int kingSquare, int[] direction, int[] slidingPiece)
-    {
-        int row = kingSquare / 8;
-        int col = kingSquare % 8;
-        int rowDirection = direction[0];
-        int colDirection = direction[1];
-
-        row += rowDirection;
-        col += colDirection;
-
-        long moves = 0L;
-        while(0 <= row && row <= 7 && 0 <= col && col <= 7)
-        {
-            long currentSquare = 1L << (63 - (8 * row + col));
-
-            if ((currentSquare & getFriendlyPieces()) != 0)
-            {
-                return 0;
-            }
-
-            moves |= currentSquare;
-
-            for(int piece : slidingPiece)
-            {
-                if ((currentSquare & bitBoards[piece]) != 0 )
-                {
-                    return moves;
-                }
-            }
-
-            row += rowDirection;
-            col += colDirection;
-        }
-        return 0;
-    }
-
-    
-    public long getMovesToStopNonSlidingCheck(int kingSquare, int[] direction, int nonSlidingPiece)
-    {
-        int row = kingSquare / 8;
-        int col = kingSquare % 8;
-        int rowDirection = direction[0];
-        int colDirection = direction[1];
-
-        row += rowDirection;
-        col += colDirection;
-
-        if(row < 0 || row > 7 || col < 0 || col > 7)
-        {
-            return 0L;
-        }
-
-        long currentSquare = 1L << (63 - (8 * row + col));
-        if((currentSquare & bitBoards[nonSlidingPiece]) == 0)
-        {
-            return 0L;
-        }
-
-        return currentSquare;
-    }
-    
- 
-
-    public long getAllPinnedPiecesValidMoves()
-    {
-        int kingSquare = determineKingSquare();
-        int[] axialPieces =  new int[]{9, 10};
-        int[] diagonalPieces = new int[]{8, 10};
-
-        if(turn % 2 != 0)
-        {
-            axialPieces = new int[]{3, 4};
-            diagonalPieces = new int[]{2, 4};
-        }
-
-        long pinnedPieces = 0L;
-
-        int[][] axialDirections = {{-1, 0}, {1, 0}, {0, 1}, {0, -1}};
-        int[][] diagonalDirections = {{-1, -1}, {1, 1}, {1, -1}, {-1, 1}};
-
-        for(int[] direction : axialDirections)
-        {
-            pinnedPieces |= getPinnedPieceValidMove(kingSquare, direction, axialPieces);
-        }
-
-        for(int[] direction : diagonalDirections)
-        {
-            pinnedPieces |= getPinnedPieceValidMove(kingSquare, direction, diagonalPieces);
-        }
-
-        return pinnedPieces;
-    }
-
-    public long getPinnedPieceValidMove(int kingSquare, int[] direction, int[] checkingPieces)
-    {
-        long movePath = getPotentialAttackerPath(kingSquare, direction, checkingPieces);
-        int numberOfFriendlyPieces = Long.bitCount(movePath & getFriendlyPieces());
-
-        if(numberOfFriendlyPieces == 1)
-        {
-            return movePath;
-        }
-
-        return 0L;
-    }
-
-    public long getPotentialAttackerPath(int kingSquare, int[] direction, int[] checkingPieces)
-    {
-        long moves = 0L;
-
-        int rowDirection = direction[0];
-        int colDirection = direction[1];
-
-        int row = kingSquare / 8 + rowDirection;
-        int col = kingSquare % 8 + colDirection;
-
-        long checkingPiecesBitboard = bitBoards[checkingPieces[0]] | bitBoards[checkingPieces[1]];
-        long nonCheckingPiecesBitboard = getEnemyPieces() & ~checkingPiecesBitboard;
-
-        while(0 <= row && row <= 7 && 0 <= col && col <= 7)
-        {
-            long currentSquare = 1L << (63 - (8 * row + col));
-
-            if((currentSquare & nonCheckingPiecesBitboard) != 0)
-            {
-                return 0L;
-            }
-
-            moves |= currentSquare;
-
-            if((currentSquare & checkingPiecesBitboard) != 0)
-            {
-                return moves;
-            }
-
-            row += rowDirection;
-            col += colDirection;
-        }
-
-        return 0L;
-
+        return ((bitBoards[11] & getAllPossibleEnemyAttacks()) != 0);
     }
 
 
@@ -1010,7 +627,7 @@ public class Game
 
         if((bitBoards[king] & kingLocation) != 0 && (bitBoards[rook] & rookLocation) != 0)
         {
-            if((allPiecesBitboard & shortCastlingSpaceMask) == 0)
+            if((allPiecesBitboard & shortCastlingSpaceMask) == 0 && (shortCastlingSpaceMask & getAllPossibleEnemyAttacks()) == 0)
             {
                 return true;
             }
@@ -1024,7 +641,6 @@ public class Game
         long rookOldPosition = 0x0000000000000001L;
         long rookNewPosition = 0x0000000000000004L;
 
-        long kingOldPosition = 0x0000000000000008L;
         long kingNewPosition = 0x0000000000000002L;
 
         int king = 5;
@@ -1041,29 +657,37 @@ public class Game
             rook = 9;
         }
 
-        if((bitBoards[rook] & rookOldPosition) == 0)
-        {
-            return;
-        }
-
-
         bitBoards[rook] = (bitBoards[rook]  & ~rookOldPosition) | rookNewPosition;
         bitBoards[king] = kingNewPosition;
     }
 
-    public boolean isMoveShortCastle(long startingPosition, long endingPosition)
+    public void undoShortCastle()
     {
-        long kingStartingPosition = 0x0000000000000008L;
-        long shortCastle = 0x0000000000000002L;
+        long rookOldPosition = 0x0000000000000004L;
+        long rookNewPosition = 0x0000000000000001L;
+
+
+        long kingNewPosition = 0x0000000000000008L;
+
+        int king = 5;
+        int rook = 3;
 
         if(turn % 2 != 0)
         {
-            kingStartingPosition = 0x0800000000000000L;
-            shortCastle = 0x0200000000000000L;
+            rookOldPosition = 0x0400000000000000L;
+            rookNewPosition =  0x0100000000000000L;
+
+            kingNewPosition = 0x0800000000000000L;
+
+            king = 11;
+            rook = 9;
         }
 
-        return (kingStartingPosition & startingPosition) != 0 && (shortCastle & endingPosition) != 0;
+
+        bitBoards[rook] = (bitBoards[rook]  & ~rookOldPosition) | rookNewPosition;
+        //bitBoards[king] = kingNewPosition;
     }
+
 
     public boolean canLongCastle()
     {
@@ -1099,7 +723,7 @@ public class Game
 
         if((bitBoards[king] & kingLocation) != 0 && (bitBoards[rook] & rookLocation) != 0)
         {
-            if((allPiecesBitboard & longCastlingSpaceMask) == 0)
+            if((allPiecesBitboard & longCastlingSpaceMask) == 0 && (getAllPossibleEnemyAttacks() & longCastlingSpaceMask) == 0)
             {
                 return true;
             }
@@ -1140,50 +764,89 @@ public class Game
         bitBoards[king] = kingNewPosition;
     }
 
-    public boolean isMoveLongCastle(long startingPosition, long endingPosition)
+    public void undoLongCastle()
     {
-        long kingStartingPosition = 0x0000000000000008L;
-        long longCastle = 0x0000000000000020L;
+        long rookOldPosition = 0x0000000000000010L;
+        long rookNewPosition = 0x0000000000000080L;
+
+        long kingOldPosition = 0x0000000000000020L;
+        long kingNewPosition = 0x0000000000000008L;
+
+
+        int king = 5;
+        int rook = 3;
 
         if(turn % 2 != 0)
         {
-            kingStartingPosition = 0x0800000000000000L;
-            longCastle = 0x2000000000000000L;
+            rookOldPosition = 0x1000000000000000L;
+            rookNewPosition = 0x8000000000000000L;
+
+            kingNewPosition = 0x8000000000000000L;
+
+            king = 11;
+            rook = 9;
         }
 
-        return (kingStartingPosition & startingPosition) != 0 && (longCastle & endingPosition) != 0;
+        if((bitBoards[rook] & rookOldPosition) == 0)
+        {
+            return;
+        }
+
+        bitBoards[rook] = (bitBoards[rook] & ~rookOldPosition) | rookNewPosition;
+        //bitBoards[king] = kingNewPosition;
     }
 
 
-    public boolean isPawnOnPromotionSquare()
+    public void enPassant(long pieceToMoveBitBoard, long moveBitboard)
     {
-        long whitePromotionSquaresMask = 0xFF00000000000000L;
-        long blackPromotionSquaresMask = 0x00000000000000FFL;
-
         if(turn % 2 == 0)
         {
-            return (whitePromotionSquaresMask & bitBoards[0]) != 0;
+            bitBoards[0] &= ~pieceToMoveBitBoard;
+            bitBoards[0] |= moveBitboard;
+            bitBoards[6] &= ~doublePawnPushBitboard;
         }
+        else
+        {
+            bitBoards[6] &= ~pieceToMoveBitBoard;
+            bitBoards[6] |= moveBitboard;
+            bitBoards[0] &= ~doublePawnPushBitboard;
+        }
+    }
 
-        return (blackPromotionSquaresMask & bitBoards[6]) != 0;
+    public void undoEnPassant(long pieceToMoveBitBoard, long moveBitboard)
+    {
+        if(turn % 2 == 0)
+        {
+            bitBoards[0] &= ~moveBitboard;
+            bitBoards[0] |= pieceToMoveBitBoard;
+
+            bitBoards[6] |= (moveBitboard >> 8);
+        }
+        else
+        {
+            bitBoards[6] &= ~moveBitboard;
+            bitBoards[6] |= pieceToMoveBitBoard;
+
+            bitBoards[0] |= (moveBitboard << 8);
+        }
     }
 
     public void promote(byte promotion)
     {
-        int promotionPieceIndex;
-        if((promotion & 0b1000) != 0)
+        int promotionPieceIndex = -1;
+        if(promotion == 0b1000 || promotion == 0b1100)
         {
             promotionPieceIndex = 1;
         }
-        else if((promotion & 0b1001) != 0)
+        else if(promotion == 0b1001 || promotion == 0b1101)
         {
             promotionPieceIndex = 2;
         }
-        else if((promotion & 0b1010) != 0)
+        else if(promotion == 0b1010 || promotion == 0b1110)
         {
             promotionPieceIndex = 3;
         }
-        else
+        else if(promotion == 0b1011 || promotion == 0b1111)
         {
             promotionPieceIndex = 4;
         }
@@ -1203,6 +866,45 @@ public class Game
             long pawnToPromote = bitBoards[6] & blackPromotionSquaresMask;
             bitBoards[6] = bitBoards[6] ^ pawnToPromote;
             bitBoards[promotionPieceIndex] = bitBoards[promotionPieceIndex] | pawnToPromote;
+        }
+    }
+
+    public void undoPromote(byte promotion, char move)
+    {
+        int promotionPieceIndex = -1;
+        if(promotion == 0b1000 || promotion == 0b1100)
+        {
+            promotionPieceIndex = 1;
+        }
+        else if(promotion == 0b1001 || promotion == 0b1101)
+        {
+            promotionPieceIndex = 2;
+        }
+        else if(promotion == 0b1010 || promotion == 0b1110)
+        {
+            promotionPieceIndex = 3;
+        }
+        else if(promotion == 0b1011 || promotion == 0b1111)
+        {
+            promotionPieceIndex = 4;
+        }
+
+        int startSquare = MoveGeneration.getStartSquare(move);
+        int endSquare = MoveGeneration.getEndSquare(move);
+
+        long pieceToMoveBitBoard = 1L << 63 - startSquare;
+        long moveBitBoard = 1L << 63 - endSquare;
+
+        if(turn % 2 == 0)
+        {
+            bitBoards[0] |= pieceToMoveBitBoard;
+            bitBoards[promotionPieceIndex] &= ~moveBitBoard;
+        }
+        else
+        {
+            promotionPieceIndex += 6;
+            bitBoards[0] |= pieceToMoveBitBoard;
+            bitBoards[promotionPieceIndex] &= ~moveBitBoard;
         }
     }
 

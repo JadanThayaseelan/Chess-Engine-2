@@ -18,10 +18,9 @@ public class Knight
 
     public void fillKnightAttacks()
     {
-        long knightPosition = 0x0000000000000001;
         for(int i = 0; i < 64; i++)
         {
-            long currentKnightPosition = knightPosition << i;
+            long currentKnightPosition = 1L << 63 - i;
             knightAttacks[i] = knightAttacksOnTheFly(currentKnightPosition);
         }
     }
@@ -32,8 +31,21 @@ public class Knight
         {
             return 0L;
         }
-        int index = 63 - Long.numberOfLeadingZeros(board);
+        int index =  Long.numberOfLeadingZeros(board);
         return knightAttacks[index];
+    }
+
+    public long getKnightAttacks(long board)
+    {
+        long attacks = 0L;
+        while(board != 0)
+        {
+            long knight = 1L << 63 - Long.numberOfLeadingZeros(board);
+            board &= ~knight;
+
+            attacks |= getKnightAttack(knight);
+        }
+        return attacks;
     }
 
     public long knightAttacksOnTheFly(long board)
@@ -88,7 +100,7 @@ public class Knight
             {
                 long move = 1L << Long.numberOfTrailingZeros(possibleMoves);
                 possibleMoves &= ~ move;
-                if((possibleMoves & enemyPieces) != 0)
+                if((move & enemyPieces) != 0)
                 {
                     moves.add(MoveGeneration.encodeMove(knightStart, move, capture));
                 }
@@ -101,28 +113,4 @@ public class Knight
 
         return moves;
     }
-
-    public char encodeMove(long startBitboard, long endBitboard, long allPieces, long enemyPieces)
-    {
-        if(endBitboard == 0)
-        {
-            return 0;
-        }
-
-        byte flags = 0b0000;
-        if((endBitboard & enemyPieces) != 0)
-        {
-            flags = 0b0100;
-            return MoveGeneration.encodeMove(startBitboard, endBitboard, flags);
-        }
-        else if((endBitboard & allPieces) == 0)
-        {
-            return MoveGeneration.encodeMove(startBitboard, endBitboard, flags);
-        }
-
-        return 0;
-    }
-
-
-
 }

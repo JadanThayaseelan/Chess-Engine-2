@@ -8,6 +8,7 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class ChessPanel extends JPanel
@@ -25,7 +26,7 @@ public class ChessPanel extends JPanel
         addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                if (game.turn % 2 == 0)
+                if (true)
                 {
                     int row = (e.getY() - boardOffsetY) / squareSize;
                     int column = (e.getX() - boardOffsetX) / squareSize;
@@ -41,9 +42,13 @@ public class ChessPanel extends JPanel
 
                     if ((game.getFriendlyPieces() & positionClickedBitBoard) != 0) {
                         lastPositionClickedBitBoard = positionClickedBitBoard;
-                    } else {
-                        if (game.isValidMove(lastPositionClickedBitBoard, positionClickedBitBoard)) {
-                            game.makeMove(lastPositionClickedBitBoard, positionClickedBitBoard);
+                    } else
+                    {
+                        char moveToMake = MoveGeneration.encodeMove(lastPositionClickedBitBoard, positionClickedBitBoard, (byte) 0);
+                        char validMoveToMake = game.getValidMove(moveToMake);
+                        if(validMoveToMake != 0)
+                        {
+                            game.makeEngineMove(validMoveToMake);
                         }
                     }
 
@@ -55,11 +60,8 @@ public class ChessPanel extends JPanel
                     char startSquareMask = 0xFC00;
                     char endSquareMask = 0x03F0;
 
-                    char move = engine.iterativeDeepening(6, game);
-                    long startMove = 1L << 63 - ((move & startSquareMask) >> 10);
-                    long endMove = 1L << 63 - ((move & endSquareMask) >> 4);
-
-                    game.makeMove(startMove, endMove);
+                    char move = engine.iterativeDeepening(5, game);
+                    game.makeEngineMove(move);
 
                     repaint();
                 }
@@ -73,11 +75,15 @@ public class ChessPanel extends JPanel
         Graphics2D g2d = (Graphics2D) g;
 
         drawChessboard(g2d);
+
         if((game.getFriendlyPieces() & lastPositionClickedBitBoard) != 0L)
         {
-            drawPossibleSquares(g2d, game.getPossibleMoves(lastPositionClickedBitBoard));
-//            drawPossibleSquares(g2d, game.getMovesToStopCheck());
-
+            ArrayList<Character> legalMoves = game.calculateLegalMoves(lastPositionClickedBitBoard);
+            if(legalMoves != null)
+            {
+                drawPossibleSquares(g2d, game.convertEncodedMovesToBitboard(legalMoves));
+                drawPossibleSquares(g2d, game.getAllPossibleEnemyAttacks());
+            }
         }
 
         try {

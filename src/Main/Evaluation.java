@@ -72,15 +72,26 @@ public class Evaluation
     };
 
 
-    int[] pieceValues = new int[]{100, 320, 330, 500, 900, 2000, -100, -320, -330, -500, -900, -2000};
+    int[] pieceValues = new int[]{100, 320, 330, 500, 900, 2000, 100, 320, 330, 500, 900, 2000};
 
     public int evaluate(long[] bitboards, Game game)
     {
 
-        return getColourEvaluation(true, bitboards) + getColourEvaluation(false, bitboards);
+        return getColourEvaluation(true, bitboards) - getColourEvaluation(false, bitboards);
 
         //return getColourEvaluation("B", bitboards) - getColourEvaluation("W", bitboards);
     }
+
+    public int evaluateBasedOnSide(long[] bitboards, Game game)
+    {
+        if(game.turn % 2 == 0)
+        {
+            return getColourEvaluation(true, bitboards) - getColourEvaluation(false, bitboards);
+        }
+
+        return getColourEvaluation(false, bitboards) - getColourEvaluation(true, bitboards);
+    }
+
 
 
     public int getColourEvaluation(boolean isWhite, long[] bitboards)
@@ -121,22 +132,22 @@ public class Evaluation
     {
         return switch (pieceIndex) {
             case 0 -> pawnTable[row][column];
-            case 6 -> -pawnTable[7 - row][column];
+            case 6 -> pawnTable[7 - row][column];
 
             case 1 -> knightTable[row][column];
-            case 7 -> -knightTable[7 - row][column];
+            case 7 -> knightTable[7 - row][column];
 
             case 2 -> bishopTable[row][column];
-            case 8 -> -bishopTable[7 - row][column];
+            case 8 -> bishopTable[7 - row][column];
 
             case 3 -> rookTable[row][column];
-            case 9 -> -rookTable[7 - row][column];
+            case 9 -> rookTable[7 - row][column];
 
             case 4 -> queenTable[row][column];
-            case 10 -> -queenTable[7 - row][column];
+            case 10 -> queenTable[7 - row][column];
 
             case 5 -> kingTable[row][column];
-            case 11 -> -kingTable[7 - row][column];
+            case 11 -> kingTable[7 - row][column];
             default -> 0;
         };
     }
