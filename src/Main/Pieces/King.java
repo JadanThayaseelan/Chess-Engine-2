@@ -11,7 +11,7 @@ public class King
 
     public void fillKingAttacks()
     {
-        long kingPosition = 0x0000000000000001L;
+        long kingPosition = 1L;
         for(int i = 0; i < 64; i++)
         {
             long currentKingPosition = kingPosition << (63 - i);
@@ -36,19 +36,19 @@ public class King
         long notOneFileMask = 0xffffffffffffff00L;
 
         long northMove = bitBoard << 8 & notOneFileMask;
-        long northEastMove = bitBoard << 7 & (notAFileMask | notOneFileMask);
+        long northEastMove = bitBoard << 7 & (notAFileMask & notOneFileMask);
 
         long eastMove = bitBoard >> 1 & notAFileMask;
 
 
-        long southEastMove = (bitBoard >>> 9) & notEightFileMask;
+        long southEastMove = (bitBoard >> 9) & notEightFileMask & notAFileMask;
 
         long southMove = bitBoard >> 8 & notEightFileMask;
-        long southWestMove = bitBoard >> 7 & (notHFileMask | notEightFileMask);
+        long southWestMove = bitBoard >> 7 & (notHFileMask & notEightFileMask);
 
         long westMove = bitBoard << 1 & notHFileMask;
 
-        long northWestMove = bitBoard << 9 & (notHFileMask | notOneFileMask);
+        long northWestMove = bitBoard << 9 & (notHFileMask & notOneFileMask);
 
         return northMove | northEastMove | eastMove | southEastMove | southMove | southWestMove | westMove | northWestMove;
     }

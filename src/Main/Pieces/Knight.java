@@ -20,8 +20,15 @@ public class Knight
     {
         for(int i = 0; i < 64; i++)
         {
-            long currentKnightPosition = 1L << 63 - i;
-            knightAttacks[i] = knightAttacksOnTheFly(currentKnightPosition);
+            if(i == 0)
+            {
+                knightAttacks[i] = 0x0020400000000000L;
+            }
+            else
+            {
+                long currentKnightPosition = 1L << 63 - i;
+                knightAttacks[i] = knightAttacksOnTheFly(currentKnightPosition);
+            }
         }
     }
 
@@ -87,30 +94,29 @@ public class Knight
         return moves & ~friendlyPieces;
     }
 
-    public ArrayList<Character> calculateKnightMoves(long board, long friendlyPieces, long enemyPieces)
+    public int calculateKnightMoves(long board, long friendlyPieces, long enemyPieces, int moveCount, char[] moves)
     {
-        ArrayList<Character> moves = new ArrayList<>();
         while(board != 0)
         {
-            long knightStart = 1L << Long.numberOfTrailingZeros(board);
+            long knightStart = 1L << 63 - Long.numberOfLeadingZeros(board);
             board = board ^ knightStart;
 
             long possibleMoves = getKnightAttack(knightStart) & ~friendlyPieces;
             while (possibleMoves != 0)
             {
-                long move = 1L << Long.numberOfTrailingZeros(possibleMoves);
+                long move = 1L << 63 - Long.numberOfLeadingZeros(possibleMoves);
                 possibleMoves &= ~ move;
                 if((move & enemyPieces) != 0)
                 {
-                    moves.add(MoveGeneration.encodeMove(knightStart, move, capture));
+                    moves[moveCount++] = MoveGeneration.encodeMove(knightStart, move, capture);
                 }
                 else
                 {
-                    moves.add(MoveGeneration.encodeMove(knightStart, move, quiet));
+                    moves[moveCount++] = MoveGeneration.encodeMove(knightStart, move, quiet);
                 }
             }
         }
 
-        return moves;
+        return moveCount;
     }
 }

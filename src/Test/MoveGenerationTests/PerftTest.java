@@ -3,6 +3,7 @@ package Test.MoveGenerationTests;
 import Main.Bitboard;
 import Main.Game;
 import Main.MoveGeneration;
+import Main.Pieces.King;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -13,6 +14,7 @@ import static org.junit.Assert.assertEquals;
 
 public class PerftTest
 {
+    int totalCount = 0;
     Game game = new Game(new String[][]{
                     {"r", "n", "b", "q", "k", "b", "n", "r"},
                     {"p", "p", "p", "p", "p", "p", "p", "p"},
@@ -54,88 +56,85 @@ public class PerftTest
         }
     }
 
-    int count = 0;
+
     public int perft(int depth)
     {
-        if (depth == 0) return 1;
+        if (depth == 0)
+        {
+            return 1;
+        }
 
         int nodes = 0;
-        ArrayList<Character> moves = game.calculateAllPseudoLegalMoves();
+        char[] moves = game.calculateAllPseudoLegalMoves();
 
-        for (char move : moves)
+        for (int i = 0; i < moves.length; i++)
         {
-            if(!game.isMoveLegal(move))
+            if(moves[i] == 0 || !game.isMoveLegal(moves[i]))
             {
-//                displayStringBoard(Bitboard.convertBitBoardsToStringBoard(game.bitBoards));
-//                System.out.println("Pruned illegal move: " + MoveGeneration.getStartSquare(move) + " " + MoveGeneration.getEndSquare(move) + " " + MoveGeneration.getFlags(move));
+                continue;
             }
-            else
-            {
-                if((move & 0b0100) != 0)
-                {
-                    count += 1;
-                }
-                game.makeEngineMove(move);
-                nodes += perft(depth - 1);
-                game.undoEngineMove();
-            }
+
+            game.makeEngineMove(moves[i]);
+            nodes += perft(depth - 1);
+            game.undoEngineMove();
+
         }
 
         return nodes;
     }
 
-    public void debugPerft(int depth) {
-        ArrayList<Character> moves = game.calculateAllPseudoLegalMoves();
-
-        long totalNodes = 0;
-        System.out.println("Depth " + depth + " perft debug:");
-        for (char move : moves) {
-            // Make the move
-            if(!game.isMoveLegal(move))
-            {
-                continue;
-            }
-            game.makeEngineMove(move);
-            long nodes = perft(depth - 1);
-            game.undoEngineMove();
-
-            totalNodes += nodes;
-
-            int start = MoveGeneration.getStartSquare(move);
-            int end = MoveGeneration.getEndSquare(move);
-            byte flags = (byte) MoveGeneration.getFlags(move);
-
-            System.out.println("Move: " + squareNames[start] + "->" + squareNames[end] + " | flags: " + flags + " | nodes: " + nodes);
-        }
-        System.out.println("Total nodes at depth " + depth + ": " + totalNodes);
-    }
-
-
-    public int perftDivide(int depth)
-    {
-        if (depth < 1) throw new IllegalArgumentException("depth must be >= 1");
-
-        int total = 0;
-        ArrayList<Character> moves = game.calculateAllPseudoLegalMoves();
-
-        for (char move : moves)
-        {
-            if (game.isMoveLegal(move))
-            {
-                game.makeEngineMove(move);
-                int nodes = perft(depth - 1);
-                game.undoEngineMove();
-                System.out.println(squareNames[MoveGeneration.getStartSquare(move)] + squareNames[MoveGeneration.getEndSquare(move)] + ": " + nodes);
-                total += nodes;
-            }
-        }
-
-        return total;
-    }
+//    public void debugPerft(int depth) {
+//        ArrayList<Character> moves = game.calculateAllPseudoLegalMoves();
+//
+//        long totalNodes = 0;
+//        System.out.println("Depth " + depth + " perft debug:");
+//        for (char move : moves) {
+//            // Make the move
+//            if(!game.isMoveLegal(move))
+//            {
+//                continue;
+//            }
+//            game.makeEngineMove(move);
+//            long nodes = perft(depth - 1);
+//            game.undoEngineMove();
+//
+//            totalNodes += nodes;
+//
+//            int start = MoveGeneration.getStartSquare(move);
+//            int end = MoveGeneration.getEndSquare(move);
+//            byte flags = (byte) MoveGeneration.getFlags(move);
+//
+//            System.out.println("Move: " + squareNames[start] + "(" + start + ")" + "->" + squareNames[end] + "(" + end + ")" + " | flags: " + flags + " | nodes: " + nodes);
+//        }
+//        System.out.println("Total nodes at depth " + depth + ": " + totalNodes);
+//    }
+//
+//
+//    public int perftDivide(int depth)
+//    {
+//        if (depth < 1) throw new IllegalArgumentException("depth must be >= 1");
+//
+//        int total = 0;
+//        ArrayList<Character> moves = game.calculateAllPseudoLegalMoves();
+//
+//        for (char move : moves)
+//        {
+//            if (game.isMoveLegal(move))
+//            {
+//                game.makeEngineMove(move);
+//                int nodes = perft(depth - 1);
+//                game.undoEngineMove();
+//                System.out.println(squareNames[MoveGeneration.getStartSquare(move)] + squareNames[MoveGeneration.getEndSquare(move)] + ": " + nodes);
+//                total += nodes;
+//            }
+//        }
+//
+//        return total;
+//    }
 
     @Test
     @DisplayName("Test move count is correct for depth 1")
-    public void testDepthOne()
+    public void test1DepthOne()
     {
         assertEquals(20, perft(1));
     }
@@ -143,101 +142,475 @@ public class PerftTest
 
     @Test
     @DisplayName("Test move count is correct for depth 2")
-    public void testDepthTwo()
+    public void test1DepthTwo()
     {
         assertEquals(400, perft(2));
     }
 
     @Test
     @DisplayName("Test move count is correct for depth 3")
-    public void testDepthThree()
+    public void test1DepthThree()
     {
         assertEquals(8902, perft(3));
     }
 
     @Test
     @DisplayName("Test move count is correct for depth 4")
-    public void testDepthFour()
+    public void test1DepthFour()
     {
-//        game.makeEngineMove(MoveGeneration.encodeMoveSquares(62, 47, (byte)0));
-//        game.makeEngineMove(MoveGeneration.encodeMoveSquares(13, 21, (byte)0b0001));
-//        game.makeEngineMove(MoveGeneration.encodeMoveSquares(47, 30, (byte)0b0001));
-//
-//        debugPerft(1);
-        //g1h3 +2
-        //g1h3 f7f6 +1
-
-        //g1h3 f7f6 h3g5 +1
-
-
-        //g1h3 f7f5 + 1
-
-        //g1f3 +6
-        //b1c3 +2
         assertEquals(197281, perft(4));
     }
 
     @Test
     @DisplayName("Test move count is correct for depth 5")
-    public void testDepthFive()
+    public void test1DepthFive()
     {
         assertEquals(4865609, perft(5));
-        //game.makeEngineMove(MoveGeneration.encodeMoveSquares(48, 40, (byte)0));
-        //game.makeEngineMove(MoveGeneration.encodeMoveSquares(1, 18, (byte)0));
-        //game.makeEngineMove(MoveGeneration.encodeMoveSquares(52, 36, (byte)0));
-        //game.makeEngineMove(MoveGeneration.encodeMoveSquares(18, 35, (byte)0));
-        //displayStringBoard(Bitboard.convertBitBoardsToStringBoard(game.bitBoards));
-//        game.displayBitBoard(game.getAllPossibleEnemyAttacks());
-//        debugPerft(5);
-
-
-
-
-        //perft(4);
-        //System.out.println(count);
-
-        //a2a3 b8c6 +2
-
-        //a2a3 b8c6 e2e3 +1
-        //a2a3 b8c6 e2e4 +1
-
-        //a2a3 b8c6 e2e3 c6d4 +1
-        //illegal move e1e2
-        //king cannot move into check
-
-        //a2a3 b8c6 e2e4
-
-
-
-
-        //a2a3 g8f6 +6
-        //a2a3 g8h6 +2
     }
 
     @Test
     @DisplayName("Test move count is correct for depth 6")
-    public void testDepthSix()
+    public void test1DepthSix()
     {
+
         assertEquals(119060324, perft(6));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 1")
+    public void test2DepthOne()
+    {
+        game = new Game(new String[][] {
+                {"r", " ", " ", " ", "k", " ", " ", "r"},
+                {"p", " ", "p", "p", "q", "p", "b", " "},
+                {"b", "n", " ", " ", "p", "n", "p", " "},
+                {" ", " ", " ", "P", "N", " ", " ", " "},
+                {" ", "p", " ", " ", "P", " ", " ", " "},
+                {" ", " ", "N", " ", " ", "Q", " ", "p"},
+                {"P", "P", "P", "B", "B", "P", "P", "P"},
+                {"R", " ", " ", " ", "K", " ", " ", "R"},
+
+        });
+
+        assertEquals(48, perft(1));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 2")
+    public void test2DepthTwo()
+    {
+        game = new Game(new String[][] {
+                {"r", " ", " ", " ", "k", " ", " ", "r"},
+                {"p", " ", "p", "p", "q", "p", "b", " "},
+                {"b", "n", " ", " ", "p", "n", "p", " "},
+                {" ", " ", " ", "P", "N", " ", " ", " "},
+                {" ", "p", " ", " ", "P", " ", " ", " "},
+                {" ", " ", "N", " ", " ", "Q", " ", "p"},
+                {"P", "P", "P", "B", "B", "P", "P", "P"},
+                {"R", " ", " ", " ", "K", " ", " ", "R"},
+
+        });
+
+        assertEquals(2039, perft(2));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 3")
+    public void test2DepthThree()
+    {
+        game = new Game(new String[][] {
+                {"r", " ", " ", " ", "k", " ", " ", "r"},
+                {"p", " ", "p", "p", "q", "p", "b", " "},
+                {"b", "n", " ", " ", "p", "n", "p", " "},
+                {" ", " ", " ", "P", "N", " ", " ", " "},
+                {" ", "p", " ", " ", "P", " ", " ", " "},
+                {" ", " ", "N", " ", " ", "Q", " ", "p"},
+                {"P", "P", "P", "B", "B", "P", "P", "P"},
+                {"R", " ", " ", " ", "K", " ", " ", "R"},
+
+        });
+
+        assertEquals(97862, perft(3));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 4")
+    public void test2DepthFour()
+    {
+        game = new Game(new String[][] {
+                {"r", " ", " ", " ", "k", " ", " ", "r"},
+                {"p", " ", "p", "p", "q", "p", "b", " "},
+                {"b", "n", " ", " ", "p", "n", "p", " "},
+                {" ", " ", " ", "P", "N", " ", " ", " "},
+                {" ", "p", " ", " ", "P", " ", " ", " "},
+                {" ", " ", "N", " ", " ", "Q", " ", "p"},
+                {"P", "P", "P", "B", "B", "P", "P", "P"},
+                {"R", " ", " ", " ", "K", " ", " ", "R"},
+
+        });
+
+        assertEquals(4085603, perft(4));
+    }
+
+
+    @Test
+    @DisplayName("Test move count is correct for depth 1")
+    public void test3DepthOne()
+    {
+        game = new Game(new String[][]{
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", "p", " ", " ", " ", " ", " "},
+                {" ", " ", " ", "p", " ", " ", " ", " "},
+                {"K", "P", " ", " ", " ", " ", " ", "r"},
+                {" ", "R", " ", " ", " ", "p", " ", "k"},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", " ", " ", "P", " ", "P", " "},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+        });
+        game.cannotCastleFlags = 0b1111;
+        assertEquals(14, perft(1));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 2")
+    public void test3DepthTwo()
+    {
+        game = new Game(new String[][]{
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", "p", " ", " ", " ", " ", " "},
+                {" ", " ", " ", "p", " ", " ", " ", " "},
+                {"K", "P", " ", " ", " ", " ", " ", "r"},
+                {" ", "R", " ", " ", " ", "p", " ", "k"},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", " ", " ", "P", " ", "P", " "},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+        });
+        game.cannotCastleFlags = 0b1111;
+        assertEquals(191, perft(2));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 3")
+    public void test3DepthThree()
+    {
+        game = new Game(new String[][]{
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", "p", " ", " ", " ", " ", " "},
+                {" ", " ", " ", "p", " ", " ", " ", " "},
+                {"K", "P", " ", " ", " ", " ", " ", "r"},
+                {" ", "R", " ", " ", " ", "p", " ", "k"},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", " ", " ", "P", " ", "P", " "},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+        });
+        game.cannotCastleFlags = 0b1111;
+        assertEquals(2812, perft(3));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 4")
+    public void test3DepthFour()
+    {
+        game = new Game(new String[][]{
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", "p", " ", " ", " ", " ", " "},
+                {" ", " ", " ", "p", " ", " ", " ", " "},
+                {"K", "P", " ", " ", " ", " ", " ", "r"},
+                {" ", "R", " ", " ", " ", "p", " ", "k"},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", " ", " ", "P", " ", "P", " "},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+        });
+        game.cannotCastleFlags = 0b1111;
+        assertEquals(43238, perft(4));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 5")
+    public void test3DepthFive()
+    {
+        game = new Game(new String[][]{
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", "p", " ", " ", " ", " ", " "},
+                {" ", " ", " ", "p", " ", " ", " ", " "},
+                {"K", "P", " ", " ", " ", " ", " ", "r"},
+                {" ", "R", " ", " ", " ", "p", " ", "k"},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", " ", " ", "P", " ", "P", " "},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+        });
+        game.cannotCastleFlags = 0b1111;
+        assertEquals(674624, perft(5));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 6")
+    public void test3DepthSix()
+    {
+        game = new Game(new String[][]{
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", "p", " ", " ", " ", " ", " "},
+                {" ", " ", " ", "p", " ", " ", " ", " "},
+                {"K", "P", " ", " ", " ", " ", " ", "r"},
+                {" ", "R", " ", " ", " ", "p", " ", "k"},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", " ", " ", "P", " ", "P", " "},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+        });
+        game.cannotCastleFlags = 0b1111;
+
+        assertEquals(11030083, perft(6));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 1")
+    public void test4DepthOne()
+    {
+        game = new Game(new String[][]{
+                {"r", " ", " ", " ", "k", " ", " ", "r"},
+                {"P", "p", "p", "p", " ", "p", "p", "p"},
+                {" ", "b", " ", " ", " ", "n", "b", "N"},
+                {"n", "P", " ", " ", " ", " ", " ", " "},
+                {"B", "B", "P", " ", "P", " ", " ", " "},
+                {"q", " ", " ", " ", " ", "N", " ", " "},
+                {"P", "p", " ", "P", " ", " ", "P", "P"},
+                {"R", " ", " ", "Q", " ", "R", "K", " "},
+        });
+        game.cannotCastleFlags = 0b1100;
+
+        assertEquals(6, perft(1));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 2")
+    public void test4DepthTwo()
+    {
+        game = new Game(new String[][]{
+                {"r", " ", " ", " ", "k", " ", " ", "r"},
+                {"P", "p", "p", "p", " ", "p", "p", "p"},
+                {" ", "b", " ", " ", " ", "n", "b", "N"},
+                {"n", "P", " ", " ", " ", " ", " ", " "},
+                {"B", "B", "P", " ", "P", " ", " ", " "},
+                {"q", " ", " ", " ", " ", "N", " ", " "},
+                {"P", "p", " ", "P", " ", " ", "P", "P"},
+                {"R", " ", " ", "Q", " ", "R", "K", " "},
+        });
+        game.cannotCastleFlags = 0b1100;
+
+        assertEquals(264, perft(2));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 3")
+    public void test4DepthThree()
+    {
+        game = new Game(new String[][]{
+                {"r", " ", " ", " ", "k", " ", " ", "r"},
+                {"P", "p", "p", "p", " ", "p", "p", "p"},
+                {" ", "b", " ", " ", " ", "n", "b", "N"},
+                {"n", "P", " ", " ", " ", " ", " ", " "},
+                {"B", "B", "P", " ", "P", " ", " ", " "},
+                {"q", " ", " ", " ", " ", "N", " ", " "},
+                {"P", "p", " ", "P", " ", " ", "P", "P"},
+                {"R", " ", " ", "Q", " ", "R", "K", " "},
+        });
+        game.cannotCastleFlags = 0b1100;
+        assertEquals(9467, perft(3));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 4")
+    public void test4DepthFour()
+    {
+        game = new Game(new String[][]{
+                {"r", " ", " ", " ", "k", " ", " ", "r"},
+                {"P", "p", "p", "p", " ", "p", "p", "p"},
+                {" ", "b", " ", " ", " ", "n", "b", "N"},
+                {"n", "P", " ", " ", " ", " ", " ", " "},
+                {"B", "B", "P", " ", "P", " ", " ", " "},
+                {"q", " ", " ", " ", " ", "N", " ", " "},
+                {"P", "p", " ", "P", " ", " ", "P", "P"},
+                {"R", " ", " ", "Q", " ", "R", "K", " "},
+        });
+        game.cannotCastleFlags = 0b1100;
+        assertEquals(422333, perft(4));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 5")
+    public void test4DepthFive()
+    {
+        game = new Game(new String[][]{
+                {"r", " ", " ", " ", "k", " ", " ", "r"},
+                {"P", "p", "p", "p", " ", "p", "p", "p"},
+                {" ", "b", " ", " ", " ", "n", "b", "N"},
+                {"n", "P", " ", " ", " ", " ", " ", " "},
+                {"B", "B", "P", " ", "P", " ", " ", " "},
+                {"q", " ", " ", " ", " ", "N", " ", " "},
+                {"P", "p", " ", "P", " ", " ", "P", "P"},
+                {"R", " ", " ", "Q", " ", "R", "K", " "},
+        });
+        game.cannotCastleFlags = 0b1100;
+        assertEquals(15833292, perft(5));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 1")
+    public void test5DepthOne()
+    {
+        game = new Game(new String[][]{
+                {"r", "n", "b", "q", " ", "k", " ", "r"},
+                {"p", "p", " ", "P", "b", "p", "p", "p"},
+                {" ", " ", "p", " ", " ", " ", " ", " "},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", "B", " ", " ", " ", " ", " "},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {"P", "P", "P", " ", "N", "n", "P", "P"},
+                {"R", "N", "B", "Q", "K", " ", " ", "R"},
+        });
+        game.cannotCastleFlags = 0b0011;
+
+        assertEquals(44, perft(1));
+    }
+
+
+    @Test
+    @DisplayName("Test move count is correct for depth 2")
+    public void test5DepthTwo()
+    {
+        game = new Game(new String[][]{
+                {"r", "n", "b", "q", " ", "k", " ", "r"},
+                {"p", "p", " ", "P", "b", "p", "p", "p"},
+                {" ", " ", "p", " ", " ", " ", " ", " "},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", "B", " ", " ", " ", " ", " "},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {"P", "P", "P", " ", "N", "n", "P", "P"},
+                {"R", "N", "B", "Q", "K", " ", " ", "R"},
+        });
+        game.cannotCastleFlags = 0b0011;
+
+        assertEquals(1486, perft(2));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 3")
+    public void test5DepthThree()
+    {
+        game = new Game(new String[][]{
+                {"r", "n", "b", "q", " ", "k", " ", "r"},
+                {"p", "p", " ", "P", "b", "p", "p", "p"},
+                {" ", " ", "p", " ", " ", " ", " ", " "},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", "B", " ", " ", " ", " ", " "},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {"P", "P", "P", " ", "N", "n", "P", "P"},
+                {"R", "N", "B", "Q", "K", " ", " ", "R"},
+        });
+        game.cannotCastleFlags = 0b0011;
+
+        assertEquals(62379, perft(3));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 4")
+    public void test5DepthFour()
+    {
+        game = new Game(new String[][]{
+                {"r", "n", "b", "q", " ", "k", " ", "r"},
+                {"p", "p", " ", "P", "b", "p", "p", "p"},
+                {" ", " ", "p", " ", " ", " ", " ", " "},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {" ", " ", "B", " ", " ", " ", " ", " "},
+                {" ", " ", " ", " ", " ", " ", " ", " "},
+                {"P", "P", "P", " ", "N", "n", "P", "P"},
+                {"R", "N", "B", "Q", "K", " ", " ", "R"},
+        });
+        game.cannotCastleFlags = 0b0011;
+
+        assertEquals(2103487, perft(4));
+    }
+
+
+    @Test
+    @DisplayName("Test move count is correct for depth 1")
+    public void test6DepthOne()
+    {
+        game = new Game(new String[][]{
+                {"r", " ", " ", " ", " ", "r", "k", " "},
+                {" ", "p", "p", " ", "q", "p", "p", "p"},
+                {"p", " ", "n", "p", " ", "n", " ", " "},
+                {" ", " ", "b", " ", "p", " ", "B", " "},
+                {" ", " ", "B", " ", "P", " ", "b", " "},
+                {"P", " ", "N", "P", " ", "N", " ", " "},
+                {" ", "P", "P", " ", "Q", "P", "P", "P"},
+                {"R", " ", " ", " ", " ", "R", "K", " "},
+        });
+        game.cannotCastleFlags = 0b1111;
+
+        assertEquals(46, perft(1));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 2")
+    public void test6DepthTwo()
+    {
+        game = new Game(new String[][]{
+                {"r", " ", " ", " ", " ", "r", "k", " "},
+                {" ", "p", "p", " ", "q", "p", "p", "p"},
+                {"p", " ", "n", "p", " ", "n", " ", " "},
+                {" ", " ", "b", " ", "p", " ", "B", " "},
+                {" ", " ", "B", " ", "P", " ", "b", " "},
+                {"P", " ", "N", "P", " ", "N", " ", " "},
+                {" ", "P", "P", " ", "Q", "P", "P", "P"},
+                {"R", " ", " ", " ", " ", "R", "K", " "},
+        });
+        game.cannotCastleFlags = 0b1111;
+
+        assertEquals(2079, perft(2));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 3")
+    public void test6DepthThree()
+    {
+        game = new Game(new String[][]{
+                {"r", " ", " ", " ", " ", "r", "k", " "},
+                {" ", "p", "p", " ", "q", "p", "p", "p"},
+                {"p", " ", "n", "p", " ", "n", " ", " "},
+                {" ", " ", "b", " ", "p", " ", "B", " "},
+                {" ", " ", "B", " ", "P", " ", "b", " "},
+                {"P", " ", "N", "P", " ", "N", " ", " "},
+                {" ", "P", "P", " ", "Q", "P", "P", "P"},
+                {"R", " ", " ", " ", " ", "R", "K", " "},
+        });
+        game.cannotCastleFlags = 0b1111;
+
+        assertEquals(89890, perft(3));
+    }
+
+    @Test
+    @DisplayName("Test move count is correct for depth 4")
+    public void test6DepthFour()
+    {
+        game = new Game(new String[][]{
+                {"r", " ", " ", " ", " ", "r", "k", " "},
+                {" ", "p", "p", " ", "q", "p", "p", "p"},
+                {"p", " ", "n", "p", " ", "n", " ", " "},
+                {" ", " ", "b", " ", "p", " ", "B", " "},
+                {" ", " ", "B", " ", "P", " ", "b", " "},
+                {"P", " ", "N", "P", " ", "N", " ", " "},
+                {" ", "P", "P", " ", "Q", "P", "P", "P"},
+                {"R", " ", " ", " ", " ", "R", "K", " "},
+        });
+        game.cannotCastleFlags = 0b1111;
+
+        assertEquals(3894594, perft(4));
+
     }
 
 
 
-//    @Test
-//    @DisplayName("Test individual moves")
-//    public void testIndividual()
-//    {
-//
-//        game.makeEngineMove(MoveGeneration.encodeMoveSquares(57, 40, (byte) 0));
-//        perftDivide( 4); // one less depth
-//        game.undoEngineMove();
-//    }
 
-//    @Test
-//    @DisplayName("Test move count is correct for depth 6")
-//    public void testDepthSix()
-//    {
-//
-//        assertEquals(119060324, perft(6));
-//    }
+
 }

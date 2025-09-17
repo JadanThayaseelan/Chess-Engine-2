@@ -373,30 +373,30 @@ public class BishopMagic
         return moves & ~friendlyPieces;
     }
 
-    public ArrayList<Character> calculateBishopMoves(long board, long allPieces, long friendlyPieces, long enemyPieces)
+    public int calculateBishopMoves(long board, long allPieces, long friendlyPieces, long enemyPieces, int moveCount, char[] moves)
     {
-        ArrayList<Character> moves = new ArrayList<>();
+
         while(board != 0)
         {
-            long bishopStart = 1L << Long.numberOfTrailingZeros(board);
+            long bishopStart = 1L << 63 - Long.numberOfLeadingZeros(board);
             board = board ^ bishopStart;
 
             long possibleMoves = getBishopAttacks(bishopStart, allPieces) & ~friendlyPieces;
             while (possibleMoves != 0)
             {
-                long move = 1L << Long.numberOfTrailingZeros(possibleMoves);
+                long move = 1L << 63 - Long.numberOfLeadingZeros(possibleMoves);
                 possibleMoves &= ~move;
                 if((move & enemyPieces) != 0)
                 {
-                    moves.add(MoveGeneration.encodeMove(bishopStart, move, capture));
+                    moves[moveCount++] = (MoveGeneration.encodeMove(bishopStart, move, capture));
                 }
                 else
                 {
-                    moves.add(MoveGeneration.encodeMove(bishopStart, move, quiet));
+                    moves[moveCount++] = (MoveGeneration.encodeMove(bishopStart, move, quiet));
                 }
             }
         }
 
-        return moves;
+        return moveCount;
     }
 }

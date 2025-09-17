@@ -12,6 +12,10 @@ public final class MoveGeneration
         char startSquare = (char)Long.numberOfLeadingZeros(startBitboard);
         char endSquare = (char)Long.numberOfLeadingZeros(endBitboard);
 
+        if(Long.numberOfTrailingZeros(endBitboard) == 63)
+        {
+            return (char)(startSquare << 10 | flags);
+        }
         return (char) (startSquare << 10 | endSquare << 4 | flags);
     }
 

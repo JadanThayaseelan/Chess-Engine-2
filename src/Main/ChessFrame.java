@@ -1,6 +1,4 @@
-package Main.Pieces;
-
-import Main.ChessPanel;
+package Main;
 
 import javax.swing.*;
 

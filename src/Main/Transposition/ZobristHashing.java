@@ -1,13 +1,16 @@
-package Main;
+package Main.Transposition;
+
+import Main.Evaluation;
+import Main.Game;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Random;
 
 public final class ZobristHashing
 {
     Long[][][] pieceRandoms = new Long[64][6][2];
     Long[][] castlingRandoms = new Long[2][2];
+    Long[][] enPassantRandoms = new Long[2][8];
     Long sideToMove = new Random().nextLong();
 
     HashMap<String, Integer> pieceToIndex = new HashMap<>();
@@ -46,6 +49,14 @@ public final class ZobristHashing
             }
         }
 
+        for(int colour = 0; colour < 2; colour++)
+        {
+            for(int enpassantSquare = 0; enpassantSquare < 8; enpassantSquare++)
+            {
+                enPassantRandoms[colour][enpassantSquare] = new Random().nextLong();
+            }
+        }
+
         pieceToIndex.put("P", 0);
         pieceToIndex.put("p", 0);
 
@@ -78,12 +89,12 @@ public final class ZobristHashing
                 currentPieceBitboard &= ~pieceBoard;
 
                 int colour = 1;
-                if(i >= 0 && i <= 5)
+                if(i <= 5)
                 {
                     colour = 0;
                 }
 
-                hash ^= pieceRandoms[currentSquare][i][colour];
+                hash ^= pieceRandoms[currentSquare][i % 6][colour];
 
             }
         }
@@ -111,6 +122,20 @@ public final class ZobristHashing
             hash ^= sideToMove;
         }
 
+        if(game.doublePawnPushBitboard != 0)
+        {
+            int doubleSquare = Long.numberOfLeadingZeros(game.doublePawnPushBitboard);
+            int column = doubleSquare % 8;
+            if(game.turn % 2 == 0)
+            {
+                hash ^= enPassantRandoms[0][column];
+            }
+            else
+            {
+                hash ^= enPassantRandoms[1][column];
+            }
+        }
+
         return hash;
     }
 
@@ -131,7 +156,7 @@ public final class ZobristHashing
 
         Game game1 = new Game(null);
 
-        System.out.println(evalMap.get(0));
+        System.out.println(evalMap.get(hash));
     }
 
 }

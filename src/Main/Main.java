@@ -1,9 +1,5 @@
 package Main;
 
-import Main.Pieces.ChessFrame;
-
-import javax.swing.*;
-
 public class Main
 {
 

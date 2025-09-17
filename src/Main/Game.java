@@ -5,6 +5,7 @@ import Main.Pieces.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.logging.Logger;
 
 
@@ -57,8 +58,9 @@ public class Game
     private byte kingCastle = 2;
     private byte queenCastle = 3;
 
-    int maxDepth = 256;
+    int maxDepth = 1024;
     UndoState[] undoStack = new UndoState[maxDepth];
+    public int moveCount = 0;
 
     public Game(String[][] stringBoard)
     {
@@ -74,16 +76,15 @@ public class Game
                     {"R", "N", "B", "Q", "K", "B", "N", "R"}
             };
 //            stringBoard = new String[][]{
-//                    {"r", " ", "b", "q", "k", "b", "n", "r"},
-//                    {"p", "p", "p", "p", "p", "p", "p", "p"},
+//                    {" ", " ", " ", " ", " ", " ", "k", " "},
+//                    {"K", "p", " ", " ", " ", " ", "p", "p"},
+//                    {"p", " ", " ", " ", " ", " ", " ", " "},
+//                    {"P", "r", " ", " ", " ", " ", " ", " "},
+//                    {" ", " ", " ", " ", " ", " ", " ", " "},
+//                    {" ", " ", " ", " ", " ", "q", " ", " "},
 //                    {" ", " ", " ", " ", " ", " ", " ", " "},
 //                    {" ", " ", " ", " ", " ", " ", " ", " "},
-//                    {" ", " ", " ", "n", " ", " ", " ", " "},
-//                    {"P", " ", " ", " ", "P", " ", " ", " "},
-//                    {" ", "P", "P", "P", " ", "P", "P", "P"},
-//                    {"R", "N", "B", "Q", "K", "B", "N", "R"}
 //            };
-
 
         }
 
@@ -96,6 +97,7 @@ public class Game
         whitePiecesBitboard = Bitboard.getWhitePieces(bitBoards);
         blackPiecesBitboard = Bitboard.getBlackPieces(bitBoards);
         allPiecesBitboard = Bitboard.getAllPieces(bitBoards);
+
     }
 
 
@@ -118,29 +120,28 @@ public class Game
         return whitePiecesBitboard;
     }
 
-    public ArrayList<Character> calculateAllPseudoLegalMoves()
+    public char[] calculateAllPseudoLegalMoves()
     {
-        ArrayList<Character> allMoves = new ArrayList<>();
+        char[] moves = new char[256];
+        moveCount = 0;
+        int turnOffset = 0;
         if(turn % 2 == 0)
         {
-            allMoves.addAll(pawn.calculateWhitePawnMoves(bitBoards[0], allPiecesBitboard, blackPiecesBitboard, doublePawnPushBitboard));
-            allMoves.addAll(knight.calculateKnightMoves(bitBoards[1], getFriendlyPieces(), getEnemyPieces()));
-            allMoves.addAll(bishopMagic.calculateBishopMoves(bitBoards[2], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
-            allMoves.addAll(rookMagic.calculateRookMoves(bitBoards[3], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
-            allMoves.addAll(queen.calculateQueenMoves(bitBoards[4], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
-            allMoves.addAll(calculateKingMoves(bitBoards[5], getEnemyPieces()));
+            moveCount = pawn.calculateWhitePawnMoves(bitBoards[0], allPiecesBitboard, blackPiecesBitboard, doublePawnPushBitboard, moveCount, moves);
         }
         else
         {
-            allMoves.addAll(pawn.calculateBlackPawnMoves(bitBoards[6], allPiecesBitboard, whitePiecesBitboard, doublePawnPushBitboard));
-            allMoves.addAll(knight.calculateKnightMoves(bitBoards[7], getFriendlyPieces(), getEnemyPieces()));
-            allMoves.addAll(bishopMagic.calculateBishopMoves(bitBoards[8], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
-            allMoves.addAll(rookMagic.calculateRookMoves(bitBoards[9], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
-            allMoves.addAll(queen.calculateQueenMoves(bitBoards[10], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces()));
-            allMoves.addAll(calculateKingMoves(bitBoards[11], getEnemyPieces()));
+            turnOffset = 6;
+            moveCount = pawn.calculateBlackPawnMoves(bitBoards[6], allPiecesBitboard, whitePiecesBitboard, doublePawnPushBitboard, moveCount, moves);
         }
 
-        return allMoves;
+        moveCount = knight.calculateKnightMoves(bitBoards[1+turnOffset], getFriendlyPieces(), getEnemyPieces(), moveCount, moves);
+        moveCount = bishopMagic.calculateBishopMoves(bitBoards[2+turnOffset], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces(), moveCount, moves);
+        moveCount = rookMagic.calculateRookMoves(bitBoards[3+turnOffset], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces(), moveCount, moves);
+        moveCount = queen.calculateQueenMoves(bitBoards[4+turnOffset], allPiecesBitboard, getFriendlyPieces(), getEnemyPieces(), moveCount, moves);
+        moveCount = calculateKingMoves(bitBoards[5+turnOffset], getEnemyPieces(), moveCount, moves);
+
+        return moves;
     }
 
     public boolean isMoveLegal(char move)
@@ -154,51 +155,72 @@ public class Game
         return !isCheck;
     }
 
-
-    public ArrayList<Character> calculatePseudoLegalMoves(long selectedPieceBitboard)
+    public ArrayList<Character> calculateAllLegalMoves()
     {
+        ArrayList<Character> legalMoves = new ArrayList<>();
+        for(char move : calculateAllPseudoLegalMoves())
+        {
+            if(isMoveLegal(move))
+            {
+                legalMoves.add(move);
+            }
+        }
+
+        return legalMoves;
+    }
+
+
+
+    public char[] calculatePseudoLegalMoves(long selectedPieceBitboard)
+    {
+
+        char[] moves = new char[256];
         if((selectedPieceBitboard & bitBoards[0]) != 0)
         {
-            return pawn.calculateWhitePawnMoves(selectedPieceBitboard, allPiecesBitboard, blackPiecesBitboard, doublePawnPushBitboard);
+            moveCount = pawn.calculateWhitePawnMoves(selectedPieceBitboard, allPiecesBitboard, blackPiecesBitboard, doublePawnPushBitboard, moveCount, moves);
         }
         else if((selectedPieceBitboard & bitBoards[6]) != 0)
         {
-            return pawn.calculateBlackPawnMoves(selectedPieceBitboard, allPiecesBitboard, whitePiecesBitboard, doublePawnPushBitboard);
+            moveCount =pawn.calculateBlackPawnMoves(selectedPieceBitboard, allPiecesBitboard, whitePiecesBitboard, doublePawnPushBitboard, moveCount, moves);
         }
 
         else if((selectedPieceBitboard & (bitBoards[1] | bitBoards[7])) != 0)
         {
-            return knight.calculateKnightMoves(selectedPieceBitboard, getFriendlyPieces(), getEnemyPieces());
+            moveCount =knight.calculateKnightMoves(selectedPieceBitboard, getFriendlyPieces(), getEnemyPieces(), moveCount, moves);
         }
 
         else if((selectedPieceBitboard & (bitBoards[2] | bitBoards[8])) != 0)
         {
-            return bishopMagic.calculateBishopMoves(selectedPieceBitboard, allPiecesBitboard, getFriendlyPieces(),  getEnemyPieces());
+            moveCount =bishopMagic.calculateBishopMoves(selectedPieceBitboard, allPiecesBitboard, getFriendlyPieces(),  getEnemyPieces(), moveCount, moves);
         }
 
         else if((selectedPieceBitboard & (bitBoards[3] | bitBoards[9])) != 0)
         {
-            return rookMagic.calculateRookMoves(selectedPieceBitboard, allPiecesBitboard, getFriendlyPieces(), getEnemyPieces());
+            moveCount =rookMagic.calculateRookMoves(selectedPieceBitboard, allPiecesBitboard, getFriendlyPieces(), getEnemyPieces(), moveCount, moves);
         }
 
         else if((selectedPieceBitboard & (bitBoards[4] | bitBoards[10])) != 0)
         {
-            return queen.calculateQueenMoves(selectedPieceBitboard, allPiecesBitboard, getFriendlyPieces(), getEnemyPieces());
+            moveCount =queen.calculateQueenMoves(selectedPieceBitboard, allPiecesBitboard, getFriendlyPieces(), getEnemyPieces(), moveCount, moves);
         }
 
         else if((selectedPieceBitboard & (bitBoards[5] | bitBoards[11])) != 0)
         {
-            return calculateKingMoves(selectedPieceBitboard, getEnemyPieces());
+            moveCount = calculateKingMoves(selectedPieceBitboard, getEnemyPieces(), moveCount, moves);
+        }
+        else
+        {
+            return null;
         }
 
-        return null;
+        return moves;
     }
 
     public ArrayList<Character> calculateLegalMoves(long selectedPieceBitboard)
     {
         ArrayList<Character> legalMoves = new ArrayList<>();
 
-        ArrayList<Character> pseudoLegalMoves = calculatePseudoLegalMoves(selectedPieceBitboard);
+        char[] pseudoLegalMoves = calculatePseudoLegalMoves(selectedPieceBitboard);
         if(pseudoLegalMoves == null)
         {
             return null;
@@ -206,7 +228,7 @@ public class Game
 
         for(char move : pseudoLegalMoves)
         {
-            if(isMoveLegal(move))
+            if(move != 0 && isMoveLegal(move))
             {
                 legalMoves.add(move);
             }
@@ -509,11 +531,9 @@ public class Game
 
 
 
-    public ArrayList<Character> calculateKingMoves(long board, long enemyPieces)
+    public int calculateKingMoves(long board, long enemyPieces, int moveCount, char[] moves)
     {
-        ArrayList<Character> moves = new ArrayList<>();
-
-        long possibleMoves = king.getKingAttack(board) & ~getFriendlyPieces() & ~getAllPossibleEnemyAttacks();
+        long possibleMoves = king.getKingAttack(board) & ~getFriendlyPieces();
         while(possibleMoves != 0)
         {
             long move = 1L << Long.numberOfTrailingZeros(possibleMoves);
@@ -521,11 +541,11 @@ public class Game
 
             if((move & enemyPieces) != 0)
             {
-                moves.add(MoveGeneration.encodeMove(board, move, capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(board, move, capture);
             }
             else
             {
-                moves.add(MoveGeneration.encodeMove(board, move, quiet));
+                moves[moveCount++] = MoveGeneration.encodeMove(board, move, quiet);
             }
         }
 
@@ -541,7 +561,7 @@ public class Game
                 shortCastle = 0x0200000000000000L;
             }
 
-            moves.add(MoveGeneration.encodeMove(board, shortCastle, kingCastle));
+            moves[moveCount++] = MoveGeneration.encodeMove(board, shortCastle, kingCastle);
         }
 
         long longCastle = 0;
@@ -555,11 +575,11 @@ public class Game
             {
                 longCastle = 0x2000000000000000L;
             }
-            moves.add(MoveGeneration.encodeMove(board, longCastle, queenCastle));
+            moves[moveCount++] = MoveGeneration.encodeMove(board, longCastle, queenCastle);
         }
 
 
-        return moves;
+        return moveCount;
     }
 
 
@@ -701,6 +721,7 @@ public class Game
         }
 
         long longCastlingSpaceMask = 0x0000000000000070L;
+        long kingMoveMask = 0x0000000000000030L;
         long kingLocation = 0x0000000000000008L;
         long rookLocation = 0x0000000000000080L;
         int king = 5;
@@ -709,6 +730,7 @@ public class Game
         if(turn % 2 != 0)
         {
             longCastlingSpaceMask = 0x7000000000000000L;
+            kingMoveMask = 0x3000000000000000L;
             kingLocation = 0x0800000000000000L;
             rookLocation = 0x8000000000000000L;
 
@@ -723,7 +745,7 @@ public class Game
 
         if((bitBoards[king] & kingLocation) != 0 && (bitBoards[rook] & rookLocation) != 0)
         {
-            if((allPiecesBitboard & longCastlingSpaceMask) == 0 && (getAllPossibleEnemyAttacks() & longCastlingSpaceMask) == 0)
+            if((allPiecesBitboard & longCastlingSpaceMask) == 0 && (getAllPossibleEnemyAttacks() & kingMoveMask) == 0)
             {
                 return true;
             }
@@ -892,8 +914,8 @@ public class Game
         int startSquare = MoveGeneration.getStartSquare(move);
         int endSquare = MoveGeneration.getEndSquare(move);
 
-        long pieceToMoveBitBoard = 1L << 63 - startSquare;
-        long moveBitBoard = 1L << 63 - endSquare;
+        long pieceToMoveBitBoard = 1L << (63 - startSquare);
+        long moveBitBoard = 1L << (63 - endSquare);
 
         if(turn % 2 == 0)
         {
@@ -903,7 +925,7 @@ public class Game
         else
         {
             promotionPieceIndex += 6;
-            bitBoards[0] |= pieceToMoveBitBoard;
+            bitBoards[6] |= pieceToMoveBitBoard;
             bitBoards[promotionPieceIndex] &= ~moveBitBoard;
         }
     }

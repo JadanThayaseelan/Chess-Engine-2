@@ -72,12 +72,11 @@ public class Evaluation
     };
 
 
-    int[] pieceValues = new int[]{100, 320, 330, 500, 900, 2000, 100, 320, 330, 500, 900, 2000};
+    int[] pieceValues = new int[]{100, 320, 330, 500, 900, 20000, 100, 320, 330, 500, 900, 20000};
 
     public int evaluate(long[] bitboards, Game game)
     {
-
-        return getColourEvaluation(true, bitboards) - getColourEvaluation(false, bitboards);
+        return (getColourEvaluation(true, bitboards) - getColourEvaluation(false, bitboards));
 
         //return getColourEvaluation("B", bitboards) - getColourEvaluation("W", bitboards);
     }
@@ -91,6 +90,7 @@ public class Evaluation
 
         return getColourEvaluation(false, bitboards) - getColourEvaluation(true, bitboards);
     }
+
 
 
 

@@ -16,32 +16,31 @@ public class Queen
         return bishopMagic.possibleMoves(board, allPieces, friendlyPieces) | rookMagic.possibleMoves(board, allPieces, friendlyPieces);
     }
 
-    public ArrayList<Character> calculateQueenMoves(long board, long allPieces, long friendlyPieces, long enemyPieces)
+    public int calculateQueenMoves(long board, long allPieces, long friendlyPieces, long enemyPieces, int moveCount, char[] moves)
     {
-        ArrayList<Character> moves = new ArrayList<>();
         while(board != 0)
         {
-            long queenStart = 1L << Long.numberOfTrailingZeros(board);
+            long queenStart = 1L << 63 - Long.numberOfLeadingZeros(board);
             board = board ^ queenStart;
 
             long possibleMoves = getQueenAttacks(queenStart, allPieces) & ~friendlyPieces;
             while (possibleMoves != 0)
             {
-                long move = 1L << Long.numberOfTrailingZeros(possibleMoves);
+                long move = 1L << 63 - Long.numberOfLeadingZeros(possibleMoves);
                 possibleMoves &= ~ move;
                 if((move & enemyPieces) != 0)
                 {
 
-                    moves.add(MoveGeneration.encodeMove(queenStart, move, capture));
+                    moves[moveCount++] = MoveGeneration.encodeMove(queenStart, move, capture);
                 }
                 else
                 {
-                    moves.add(MoveGeneration.encodeMove(queenStart, move, quiet));
+                    moves[moveCount++] = MoveGeneration.encodeMove(queenStart, move, quiet);
                 }
             }
         }
 
-        return moves;
+        return moveCount;
     }
 
     public long getQueenAttacks(long board, long allPieces)

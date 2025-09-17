@@ -1,6 +1,7 @@
 package Main;
 
 import javax.imageio.ImageIO;
+import javax.print.DocFlavor;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -26,7 +27,7 @@ public class ChessPanel extends JPanel
         addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                if (true)
+                if (game.turn % 2 == 0)
                 {
                     int row = (e.getY() - boardOffsetY) / squareSize;
                     int column = (e.getX() - boardOffsetX) / squareSize;
@@ -57,11 +58,7 @@ public class ChessPanel extends JPanel
                 else
                 {
                     Engine engine = new Engine();
-                    char startSquareMask = 0xFC00;
-                    char endSquareMask = 0x03F0;
-
-                    char move = engine.iterativeDeepening(5, game);
-                    game.makeEngineMove(move);
+                    game.makeEngineMove(engine.iterativeDeepening(5, game));
 
                     repaint();
                 }
@@ -82,7 +79,7 @@ public class ChessPanel extends JPanel
             if(legalMoves != null)
             {
                 drawPossibleSquares(g2d, game.convertEncodedMovesToBitboard(legalMoves));
-                drawPossibleSquares(g2d, game.getAllPossibleEnemyAttacks());
+                //drawPossibleSquares(g2d, game.getAllPossibleEnemyAttacks());
             }
         }
 

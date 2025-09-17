@@ -73,7 +73,6 @@ public class TestMakeEngineMove
                 {" ", " ", " ", " ", " ", " ", " ", " "},
         });
 
-        game.turn = 1;
         game.makeEngineMove(MoveGeneration.encodeMoveSquares(53, 36, (byte)0b0100));
 
 

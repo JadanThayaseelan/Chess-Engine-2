@@ -1,9 +1,9 @@
 package Main.Pieces;
 
-import Main.Bitboard;
 import Main.MoveGeneration;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public class Pawn
 {
@@ -71,87 +71,89 @@ public class Pawn
     }
 
 
-
-    public ArrayList<Character> calculatePawnMoves(long board, long allPieces, long whitePieces, long blackPieces, int turn, long doublePawnPushBitboard)
+    public int calculateWhitePawnMoves(long board, long allPieces,  long blackPieces, long doublePawnPushBitboard, int moveCount, char[] moves)
     {
-        if(turn % 2 == 0)
-        {
-            return calculateWhitePawnMoves(board, allPieces, blackPieces, doublePawnPushBitboard);
-        }
-        return calculateBlackPawnMoves(board, allPieces, whitePieces, doublePawnPushBitboard);
-    }
 
-    public ArrayList<Character> calculateWhitePawnMoves(long board, long allPieces,  long blackPieces, long doublePawnPushBitboard)
-    {
-        ArrayList<Character> moves = new ArrayList<>();
-
-        long moveOneUp = (board << 8) & (notOneFileMask) & ~allPieces;
+        long moveOneUp = (board << 8) & ~allPieces;
         while(moveOneUp != 0)
         {
-            long endSquare =  (1L << Long.numberOfTrailingZeros(moveOneUp));
+            long endSquare =  (1L << (63 - Long.numberOfLeadingZeros(moveOneUp)));
             moveOneUp &= ~endSquare;
+            long startSquare = (endSquare >> 8);
 
-            long startSquare = (endSquare  >> 8);
-            if((endSquare & eightFileMask) != 0)
+            if(Long.numberOfTrailingZeros(endSquare) == 63)
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, queenPromotion));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, knightPromotion));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, bishopPromotion));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, rookPromotion));
+                moves[moveCount++] = MoveGeneration.encodeMoveSquares(8, 0, queenPromotion);
+                moves[moveCount++] = MoveGeneration.encodeMoveSquares(8, 0, knightPromotion);
+                moves[moveCount++] = MoveGeneration.encodeMoveSquares(8, 0, bishopPromotion);
+                moves[moveCount++] = MoveGeneration.encodeMoveSquares(8, 0, rookPromotion);
+            }
+            else if ((endSquare & eightFileMask) != 0)
+            {
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, queenPromotion);
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, knightPromotion);
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, bishopPromotion);
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, rookPromotion);
             }
             else
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, quiet));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, quiet);
             }
         }
-
-
 
         long moveTwoUp = ((board & whitePawnStartingPosition) << 8) & ~allPieces;
         moveTwoUp = ((moveTwoUp) << 8) & ~allPieces;
         while(moveTwoUp != 0)
         {
-            long endSquare = (1L << Long.numberOfTrailingZeros(moveTwoUp));
+            long endSquare = (1L << 63 - Long.numberOfLeadingZeros(moveTwoUp));
             moveTwoUp &= ~endSquare;
             long startSquare = (endSquare >> 16);
-            moves.add(MoveGeneration.encodeMove(startSquare, endSquare, doublePawnPush));
+            moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, doublePawnPush);
         }
 
         long takeRight = (board << 7 & (notAFileMask)) & blackPieces;
         while(takeRight != 0)
         {
-            long endSquare = (1L << Long.numberOfTrailingZeros(takeRight));
+            long endSquare = (1L << 63 - Long.numberOfLeadingZeros(takeRight));
             takeRight &= ~endSquare;
             long startSquare = endSquare >> 7;
             if((endSquare & eightFileMask) != 0)
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (knightPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (bishopPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (rookPromotion | capture)));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (knightPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (bishopPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (rookPromotion | capture));
             }
             else
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, capture);
             }
         }
 
         long takeLeft = (board << 9 & (notHFileMask))  & blackPieces;
         while(takeLeft != 0)
         {
-            long endSquare = (1L << Long.numberOfTrailingZeros(takeLeft));
+            long endSquare = (1L << 63 - Long.numberOfLeadingZeros(takeLeft));
             takeLeft &= ~endSquare;
             long startSquare = endSquare >> 9;
-            if((endSquare & eightFileMask) != 0)
+
+            if(Long.numberOfTrailingZeros(endSquare) == 63)
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (knightPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (bishopPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (rookPromotion | capture)));
+                moves[moveCount++] = MoveGeneration.encodeMoveSquares(9, 0, (byte) (queenPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMoveSquares(9, 0, (byte) (knightPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMoveSquares(9, 0, (byte) (bishopPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMoveSquares(9, 0, (byte) (rookPromotion | capture));
+            }
+            else if((endSquare & eightFileMask) != 0)
+            {
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (knightPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (bishopPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (rookPromotion | capture));
             }
             else
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, capture);
             }
         }
 
@@ -159,39 +161,36 @@ public class Pawn
         {
             if(((doublePawnPushBitboard << 1) & board & notHFileMask) != 0)
             {
-                moves.add(MoveGeneration.encodeMove(doublePawnPushBitboard << 1, doublePawnPushBitboard << 8, enPassant));
+                moves[moveCount++] = MoveGeneration.encodeMove(doublePawnPushBitboard << 1, doublePawnPushBitboard << 8, enPassant);
             }
             if(((doublePawnPushBitboard >> 1) & board & notAFileMask) != 0)
             {
-                moves.add(MoveGeneration.encodeMove(doublePawnPushBitboard >> 1, doublePawnPushBitboard << 8, enPassant));
+                moves[moveCount++] = MoveGeneration.encodeMove(doublePawnPushBitboard >> 1, doublePawnPushBitboard << 8, enPassant);
             }
         }
 
-
-        return moves;
+        return moveCount;
     }
 
-    public ArrayList<Character> calculateBlackPawnMoves(long board, long allPieces, long whitePieces, long doublePawnPushBitboard)
+    public int calculateBlackPawnMoves(long board, long allPieces, long whitePieces, long doublePawnPushBitboard, int moveCount, char[] moves)
     {
-        ArrayList<Character> moves = new ArrayList<>();
-
         long moveOneUp = (board >> 8) & (notEightFileMask) & ~allPieces;
         while(moveOneUp != 0)
         {
-            long endSquare =  (1L << Long.numberOfTrailingZeros(moveOneUp));
+            long endSquare =  (1L << 63 - Long.numberOfLeadingZeros(moveOneUp));
             moveOneUp &= ~endSquare;
 
             long startSquare = (endSquare << 8);
             if((endSquare & oneFileMask) != 0)
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, queenPromotion));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, knightPromotion));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, bishopPromotion));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, rookPromotion));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, queenPromotion);
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, knightPromotion);
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, bishopPromotion);
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, rookPromotion);
             }
             else
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, quiet));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, quiet);
             }
         }
 
@@ -201,47 +200,47 @@ public class Pawn
         moveTwoUp = ((moveTwoUp) >> 8) & ~allPieces;
         while(moveTwoUp != 0)
         {
-            long endSquare = (1L << Long.numberOfTrailingZeros(moveTwoUp));
+            long endSquare = (1L << 63 - Long.numberOfLeadingZeros(moveTwoUp));
             moveTwoUp &= ~endSquare;
             long startSquare = (endSquare << 16);
-            moves.add(MoveGeneration.encodeMove(startSquare, endSquare, doublePawnPush));
+            moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, doublePawnPush);
         }
 
         long takeRight = (board >> 9 & (notAFileMask)) & whitePieces;
         while(takeRight != 0)
         {
-            long endSquare = (1L << Long.numberOfTrailingZeros(takeRight));
+            long endSquare = (1L << 63 - Long.numberOfLeadingZeros(takeRight));
             takeRight &= ~endSquare;
             long startSquare = endSquare << 9;
             if((endSquare & oneFileMask) != 0)
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (knightPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (bishopPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (rookPromotion | capture)));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (knightPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (bishopPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (rookPromotion | capture));
             }
             else
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, capture);
             }
         }
 
         long takeLeft = (board >> 7 & (notHFileMask))  & whitePieces;
         while(takeLeft != 0)
         {
-            long endSquare = (1L << Long.numberOfTrailingZeros(takeLeft));
+            long endSquare = (1L << 63 - Long.numberOfLeadingZeros(takeLeft));
             takeLeft &= ~endSquare;
             long startSquare = endSquare << 7;
             if((endSquare & oneFileMask) != 0)
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (knightPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (bishopPromotion | capture)));
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, (byte) (rookPromotion | capture)));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (queenPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (knightPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (bishopPromotion | capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, (byte) (rookPromotion | capture));
             }
             else
             {
-                moves.add(MoveGeneration.encodeMove(startSquare, endSquare, capture));
+                moves[moveCount++] = MoveGeneration.encodeMove(startSquare, endSquare, capture);
             }
         }
 
@@ -250,15 +249,15 @@ public class Pawn
         {
             if(((doublePawnPushBitboard << 1) & board & notHFileMask) != 0)
             {
-                moves.add(MoveGeneration.encodeMove(doublePawnPushBitboard << 1, doublePawnPushBitboard >> 8, enPassant));
+                moves[moveCount++] = MoveGeneration.encodeMove(doublePawnPushBitboard << 1, doublePawnPushBitboard >> 8, enPassant);
             }
             if(((doublePawnPushBitboard >> 1) & board & notAFileMask) != 0)
             {
-                moves.add(MoveGeneration.encodeMove(doublePawnPushBitboard >> 1, doublePawnPushBitboard >> 8, enPassant));
+                moves[moveCount++] = MoveGeneration.encodeMove(doublePawnPushBitboard >> 1, doublePawnPushBitboard >> 8, enPassant);
             }
         }
 
-        return moves;
+        return moveCount;
     }
 
     public long getPawnAttacks(long board, int turn)

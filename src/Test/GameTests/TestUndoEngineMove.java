@@ -116,7 +116,7 @@ public class TestUndoEngineMove
         });
         game.turn = 1;
 
-        game.makeEngineMove(MoveGeneration.encodeMoveSquares(4, 2, (byte)0b0010));
+        game.makeEngineMove(MoveGeneration.encodeMoveSquares(4, 2, (byte)0b0011));
         game.undoEngineMove();
         assertEquals(Bitboard.convertSquareToBitboard(4) ,game.bitBoards[11]);
         assertEquals(Bitboard.convertSquareToBitboard(0) ,game.bitBoards[9]);

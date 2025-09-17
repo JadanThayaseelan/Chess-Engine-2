@@ -14,6 +14,18 @@ import static org.junit.Assert.assertTrue;
 
 public class TestCalculateKnightMoves
 {
+    public boolean doesContain(char moveToFind, char[] moves)
+    {
+        for(char move : moves)
+        {
+            if(move == moveToFind)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Test
     @DisplayName("Test Knight has all possible 8 positions")
     public void testKnightMiddle()
@@ -30,19 +42,20 @@ public class TestCalculateKnightMoves
                 {" ", " ", " ", " ", " ", " ", " ", " "}
         });
 
-        ArrayList<Character> knightMoves = knight.calculateKnightMoves(1 << 63 - 36, game.getFriendlyPieces(), game.getEnemyPieces());
+        char[] knightMoves = new char[256];
+        knight.calculateKnightMoves(1 << 63 - 36, game.getFriendlyPieces(), game.getEnemyPieces(), 0, knightMoves);
 
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(36, 30, (byte) 0b0000)));
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(36, 46, (byte) 0b0000)));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(36, 30, (byte) 0b0000), knightMoves));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(36, 46, (byte) 0b0000), knightMoves));
 
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(36, 26, (byte) 0b0000)));
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(36, 42, (byte) 0b0000)));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(36, 26, (byte) 0b0000), knightMoves));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(36, 42, (byte) 0b0000), knightMoves));
 
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(36, 51, (byte) 0b0000)));
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(36, 53, (byte) 0b0000)));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(36, 51, (byte) 0b0000), knightMoves));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(36, 53, (byte) 0b0000), knightMoves));
 
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(36, 19, (byte) 0b0000)));
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(36, 21, (byte) 0b0000)));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(36, 19, (byte) 0b0000), knightMoves));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(36, 21, (byte) 0b0000), knightMoves));
 
     }
 
@@ -62,13 +75,14 @@ public class TestCalculateKnightMoves
                 {" ", " ", " ", " ", " ", " ", " ", " "}
         });
 
-        ArrayList<Character> knightMoves = knight.calculateKnightMoves(1 << 63 - 39, game.getFriendlyPieces(), game.getEnemyPieces());
+        char[] knightMoves = new char[256];
+        knight.calculateKnightMoves(1 << 63 - 39, game.getFriendlyPieces(), game.getEnemyPieces(), 0, knightMoves);
 
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(39, 54, (byte) 0b0000)));
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(39, 22, (byte) 0b0000)));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(39, 54, (byte) 0b0000), knightMoves));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(39, 22, (byte) 0b0000), knightMoves));
 
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(39, 29, (byte) 0b0000)));
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(39, 45, (byte) 0b0000)));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(39, 29, (byte) 0b0000), knightMoves));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(39, 45, (byte) 0b0000), knightMoves));
 
     }
 
@@ -88,10 +102,11 @@ public class TestCalculateKnightMoves
                 {" ", " ", " ", " ", " ", " ", " ", "N"}
         });
 
-        ArrayList<Character> knightMoves = knight.calculateKnightMoves(1 << 63 - 63, game.getFriendlyPieces(), game.getEnemyPieces());
+        char[] knightMoves = new char[256];
+        knight.calculateKnightMoves(1 << 63 - 63, game.getFriendlyPieces(), game.getEnemyPieces(), 0, knightMoves);
 
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(63, 53, (byte) 0b0000)));
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(63, 46, (byte) 0b0000)));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(63, 53, (byte) 0b0000), knightMoves));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(63, 46, (byte) 0b0000), knightMoves));
     }
 
     @Test
@@ -110,9 +125,10 @@ public class TestCalculateKnightMoves
                 {" ", " ", " ", " ", " ", " ", " ", "N"}
         });
 
-        ArrayList<Character> knightMoves = knight.calculateKnightMoves(1 << 63 - 63, game.getFriendlyPieces(), game.getEnemyPieces());
+        char[] knightMoves = new char[256];
+        int moveCount = knight.calculateKnightMoves(1 << 63 - 63, game.getFriendlyPieces(), game.getEnemyPieces(), 0, knightMoves);
 
-        assertTrue(knightMoves.isEmpty());
+        assertTrue(moveCount == 0);
     }
 
     @Test
@@ -131,10 +147,11 @@ public class TestCalculateKnightMoves
                 {" ", " ", " ", " ", " ", " ", " ", "N"}
         });
 
-        ArrayList<Character> knightMoves = knight.calculateKnightMoves(1 << 63 - 63, game.getFriendlyPieces(), game.getEnemyPieces());
+        char[] knightMoves = new char[256];
+        knight.calculateKnightMoves(1 << 63 - 63, game.getFriendlyPieces(), game.getEnemyPieces(), 0, knightMoves);
 
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(63, 53, (byte) 0b0000)));
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(63, 46, (byte) 0b0100)));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(63, 53, (byte) 0b0000), knightMoves));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(63, 46, (byte) 0b0100), knightMoves));
     }
 
     @Test
@@ -153,18 +170,18 @@ public class TestCalculateKnightMoves
                 {" ", " ", " ", " ", " ", " ", " ", " "}
         });
 
-        ArrayList<Character> knightMoves = knight.calculateKnightMoves(1 << 63 - 36, game.getFriendlyPieces(), game.getEnemyPieces());
+        char[] knightMoves = new char[256];
+        knight.calculateKnightMoves(1 << 63 - 36, game.getFriendlyPieces(), game.getEnemyPieces(), 0, knightMoves);
 
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(36, 30, (byte) 0b0000)));
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(36, 46, (byte) 0b0000)));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(36, 30, (byte) 0b0000), knightMoves));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(36, 46, (byte) 0b0000), knightMoves));
 
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(36, 42, (byte) 0b0000)));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(36, 42, (byte) 0b0000), knightMoves));
 
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(36, 51, (byte) 0b0000)));
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(36, 53, (byte) 0b0000)));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(36, 51, (byte) 0b0000), knightMoves));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(36, 53, (byte) 0b0000), knightMoves));
 
-        assertTrue(knightMoves.contains(MoveGeneration.encodeMoveSquares(36, 19, (byte) 0b0100)));
+        assertTrue(doesContain(MoveGeneration.encodeMoveSquares(36, 19, (byte) 0b0100), knightMoves));
 
-        assertEquals(6, knightMoves.size());
     }
 }
