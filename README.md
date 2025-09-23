@@ -1,4 +1,5 @@
 Chess Engine
+
 The move generation system was created using bitboards and magic bitboards for performance.
 
 The AI uses minimax, alpha-beta pruning, transposition tables, iterative deepening and quiescence search to deteremine the best move based on chess position using an evaluation function.
