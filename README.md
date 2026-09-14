@@ -30,7 +30,7 @@ For bishops, rooks and queens we use magic bitboards where we determine the poss
 ## Searching System
 We use a standard minimax algorithm which calculates every possible move after a state up to a certain depth and compares each position using an evaluation function to determine the best move to make.
 
-This also has some extension such as:
+This also has some extensions such as:
 * Alpha-Beta Pruning
 * Transposition Table
 * Iterative Deepening
