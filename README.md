@@ -1,5 +1,5 @@
 # Chess Engine
-This chess engine was created in Java with Spring for the GUI
+This chess engine was created in Java with Spring for the GUI.
 A lot of the techniques I used are explained in detail on the [Chess Programming Wiki](https://chessprogramming.org)
 
 This project can be broken down into:
